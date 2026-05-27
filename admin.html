@@ -594,50 +594,15 @@
                 </div>
                 <div class="tagline-row-3">清脆、爽口、超好吃</div>
             </div>
-            
             <div class="admin-nav-btns">
-                <a href="index.html" class="back-btn"><i class="fa-solid fa-cart-shopping"></i> 前台點餐</a>
-                <button class="back-btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> 登出後台</button>
+                <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 回顧客點餐頁</a>
             </div>
         </header>
 
+        <!-- 後台主要管理區域 -->
         <div class="admin-grid">
-            <!-- 頂部控制台：雞腿配額與新增自訂商品 (合併為一個橫向卡片或兩張卡片並列) -->
+            <!-- 頂部控制台橫向大卡片 -->
             <section class="quota-control-card admin-ctrl-card">
-                <!-- 雞腿配額 -->
-                <div class="admin-quota-block">
-                    <div class="section-title admin-section-title-sm">
-                        <h2><i class="fa-solid fa-drumstick-bite"></i> 雞腿線上配額</h2>
-                    </div>
-                    <p class="admin-desc-text">售完後前台自動顯示完售以防超賣。</p>
-                    <div class="admin-quota-row">
-                        <div class="quota-setup quota-setup-inline">
-                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(-1)"><i class="fa-solid fa-minus"></i></button>
-                            <input type="text" class="quota-val-input quota-val-input-sm" id="quota-val-input" value="5" readonly>
-                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(1)"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                        <button class="save-quota-btn save-quota-btn-sm" id="save-quota-btn">更新配額數</button>
-                    </div>
-                </div>
-
-                <!-- 通用新增自訂品項 -->
-                <div class="admin-add-item-block">
-                    <div class="section-title admin-section-title-sm">
-                        <h2><i class="fa-solid fa-plus"></i> 新增自訂商品</h2>
-                    </div>
-                    <p class="admin-desc-text">新增自訂的經典配料或鮮蔬配菜。</p>
-                    <div class="admin-add-item-row">
-                        <input type="text" id="new-item-name" placeholder="商品名稱 (如: 水蓮)" class="admin-item-name-input">
-                        <input type="number" id="new-item-price" placeholder="價格" value="20" class="admin-item-price-input">
-                        <select id="new-item-type" class="admin-item-type-select">
-                            <option value="addon">經典配料</option>
-                            <option value="vegetable">鮮蔬配菜</option>
-                            <option value="bone">啃骨與內臟</option>
-                        </select>
-                        <button class="save-quota-btn admin-add-item-btn" id="add-item-btn">➕ 新增</button>
-                    </div>
-                </div>
-
                 <!-- 系統營運狀態設定 -->
                 <div class="system-status-section admin-sys-status-block">
                     <div class="section-title admin-section-title-sm">
@@ -659,6 +624,40 @@
                                 <span class="slider"></span>
                             </label>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 雞腿線上配額 -->
+                <div class="admin-quota-block">
+                    <div class="section-title admin-section-title-sm">
+                        <h2><i class="fa-solid fa-drumstick-bite"></i> 雞腿線上配額</h2>
+                    </div>
+                    <p class="admin-desc-text">售完後前台自動顯示完售以防超賣。</p>
+                    <div class="admin-quota-row">
+                        <div class="quota-setup quota-setup-inline">
+                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(-1)"><i class="fa-solid fa-minus"></i></button>
+                            <input type="text" class="quota-val-input quota-val-input-sm" id="quota-val-input" value="5" readonly>
+                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(1)"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <button class="save-quota-btn save-quota-btn-sm" id="save-quota-btn">更新配額數</button>
+                    </div>
+                </div>
+
+                <!-- 新增自訂商品 -->
+                <div class="admin-add-item-block">
+                    <div class="section-title admin-section-title-sm">
+                        <h2><i class="fa-solid fa-plus"></i> 新增自訂商品</h2>
+                    </div>
+                    <p class="admin-desc-text">新增自訂的經典配料或鮮蔬配菜。</p>
+                    <div class="admin-add-item-row">
+                        <input type="text" id="new-item-name" placeholder="商品名稱 (如: 水蓮)" class="admin-item-name-input">
+                        <input type="number" id="new-item-price" placeholder="價格" value="20" class="admin-item-price-input">
+                        <select id="new-item-type" class="admin-item-type-select">
+                            <option value="addon">經典配料</option>
+                            <option value="vegetable">鮮蔬配菜</option>
+                            <option value="bone">啃骨與內臟</option>
+                        </select>
+                        <button class="save-quota-btn admin-add-item-btn" id="add-item-btn">➕ 新增</button>
                     </div>
                 </div>
             </section>

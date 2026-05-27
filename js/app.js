@@ -225,7 +225,7 @@ function renderActiveBag() {
                 <span class="cust-label">
                     <i class="fa-solid fa-mortar-pestle"></i> 配料調整 <span>(複選，不要的請勾選)</span>
                     <span id="gift-indicator-${activeBagIndex}" class="gift-indicator" style="margin-left: 10px; font-size: 0.8rem; font-weight: 700; color: ${giftStatus.eligible ? 'var(--secondary)' : 'var(--text-muted)'};">
-                        ${giftStatus.eligible ? '✨ 單包已滿 $100，將自動贈送脆筍 1 份' : '(單包滿 $100 贈脆筍)'}
+                        ${giftStatus.eligible ? '單包已滿$100贈送脆筍' : '(單包滿 $100 贈脆筍)'}
                     </span>
                 </span>
                 <div class="btn-group">
@@ -368,7 +368,7 @@ function adjustQty(itemId, delta) {
     
     if (giftIndicator) {
         if (giftStatus.eligible) {
-            giftIndicator.innerText = '✨ 單包已滿 $100，將自動贈送脆筍 1 份';
+            giftIndicator.innerText = '單包已滿$100贈送脆筍';
             giftIndicator.style.color = 'var(--secondary)';
         } else {
             giftIndicator.innerText = '(單包滿 $100 贈脆筍)';
