@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>榮 鹽水雞 - 後台管理系統</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css?v=3">
+    <style>
+        /* 後台專用微調樣式 */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .admin-nav-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-secondary);
+        }
+
+        /* 密碼驗證鎖屏 */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-main);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .auth-overlay.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border-active);
+            border-radius: var(--radius-lg);
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(20px);
+        }
+
+        .auth-card i.lock-icon {
+            font-size: 3rem;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            text-shadow: var(--shadow-glow-yellow);
+        }
+
+        .auth-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .auth-card p {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            margin-bottom: 25px;
+        }
+
+        .auth-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .auth-card input {
+            background: var(--bg-input);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            padding: 12px 15px;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            letter-spacing: 5px;
+        }
+
+        .auth-card input:focus {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .auth-btn {
+            background: var(--primary);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        .auth-btn:hover {
+            background: var(--primary-hover);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .error-msg {
+            color: var(--accent-red);
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* 後台卡片佈局 */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .orders-card {
+                grid-column: span 2;
+            }
+        }
+
+        .admin-quad-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            grid-column: span 2;
+        }
+
+        @media (min-width: 992px) {
+            .admin-quad-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .vegetable-card {
+                grid-column: span 3;
+            }
+            .vegetable-card .switch-list {
+                max-height: none !important; /* 讓蔬菜品項完整展開，不使用內部滾動條 */
+            }
+        }
+
+        /* 雞腿配額調整 */
+        .quota-control-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .quota-setup {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .quota-val-input {
+            width: 80px;
+            background: var(--bg-input);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            outline: none;
+        }
+
+        .quota-setup-btn {
+            background: rgba(74, 44, 17, 0.06);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .quota-setup-btn:hover {
+            background: rgba(74, 44, 17, 0.1);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .save-quota-btn {
+            background: var(--secondary);
+            border: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-glow-yellow);
+        }
+
+        .save-quota-btn:hover {
+            background: #fbbf24dd;
+            transform: translateY(-1px);
+        }
+
+        /* 庫存開關開關 Switch */
+        .stock-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .switch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 5px;
+            margin-top: 15px;
+        }
+
+        .switch-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .switch-list::-webkit-scrollbar-thumb {
+            background: rgba(74, 44, 17, 0.1);
+            border-radius: 2px;
+        }
+
+        .switch-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+
+        .switch-row:hover {
+            background: rgba(74, 44, 17, 0.08);
+            border-color: var(--glass-border-active);
+        }
+
+        .switch-row.inactive {
+            opacity: 0.6;
+        }
+
+        .switch-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .switch-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .switch-price {
+            font-size: 0.8rem;
+            color: var(--secondary);
+        }
+
+        /* Switch 滑動開關本體 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #475569;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        /* 各分類卡片專屬的 Switch 開關高亮顏色 (與前台及分類色一致) */
+        #main-switch-list input:checked + .slider {
+            background-color: #e76400; /* 主食橘色 */
+        }
+        #bone-switch-list input:checked + .slider {
+            background-color: #ff7452; /* 啃骨頭橘紅色 */
+        }
+        #addon-switch-list input:checked + .slider {
+            background-color: #d97706; /* 配料金黃色 */
+        }
+        #vegetable-switch-list input:checked + .slider {
+            background-color: #65a30d; /* 蔬菜嫩綠色 */
+        }
+
+        #vegetable-switch-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        @media (max-width: 575px) {
+            #vegetable-switch-list .switch-row {
+                padding: 8px 6px;
+            }
+            #vegetable-switch-list .switch-info .switch-name {
+                font-size: 0.85rem;
+            }
+            #vegetable-switch-list .switch-info .price-edit-container {
+                font-size: 0.75rem;
+            }
+            #vegetable-switch-list .price-input-field {
+                width: 45px !important;
+            }
+            #vegetable-switch-list div[style*="gap: 15px"] {
+                gap: 6px !important;
+            }
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* 訂單列表 */
+        .orders-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .orders-container {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .orders-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .orders-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .order-admin-item {
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .order-admin-item:hover {
+            border-color: var(--glass-border-active);
+        }
+
+        .order-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 1px dashed rgba(74, 44, 17, 0.12);
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .order-meta-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .order-id-badge {
+            background: rgba(74, 44, 17, 0.06);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Outfit';
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .order-time-badge {
+            background: rgba(101, 163, 13, 0.12);
+            color: #4d7c0f;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .order-admin-phone {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .order-admin-phone:hover {
+            color: var(--primary);
+        }
+
+        .order-total-badge {
+            color: var(--secondary);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .order-bag-detail {
+            background: rgba(74, 44, 17, 0.04);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+
+        .order-bag-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-bag-title-row {
+            display: flex;
+            justify-content: space-between;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+        }
+
+        .order-bag-items {
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .order-bag-custom {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .order-bag-note {
+            color: var(--secondary);
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        .no-orders-msg {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 0;
+            font-size: 0.95rem;
+        }
+
+        /* 後台系統狀態區塊響應式邊框 */
+        .system-status-section {
+            border-left: 1px dashed var(--glass-border);
+            padding-left: 20px;
+        }
+        @media (max-width: 767px) {
+            .system-status-section {
+                border-left: none;
+                border-top: 1px dashed var(--glass-border);
+                padding-left: 0;
+                padding-top: 15px;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-decor">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <!-- 登入鎖屏 -->
+    <div class="auth-overlay" id="auth-overlay">
+        <div class="auth-card">
+            <i class="fa-solid fa-lock lock-icon"></i>
+            <h2>店家後台安全驗證</h2>
+            <p>請輸入管理密碼以存取庫存與訂單數據</p>
+            <div class="auth-input-group">
+                <input type="password" id="admin-pass-input" placeholder="••••••" maxlength="20" autofocus>
+                <div class="error-msg" id="auth-error-msg">密碼錯誤，請重新輸入！</div>
+            </div>
+            <button class="auth-btn" id="auth-submit-btn">驗證登入</button>
+            <a href="index.html" class="back-btn auth-back-link"><i class="fa-solid fa-arrow-left"></i> 回顧客點餐頁</a>
+        </div>
+    </div>
+
+    <!-- 後台主容器 -->
+    <div class="container admin-main-hidden" id="admin-main-container">
+        <!-- 頂部標題區 -->
+        <header class="app-header admin-header admin-header-layout">
+            <div class="logo-area admin-logo-area">
+                <div class="logo-container admin-logo-container">
+                    <span class="logo-stamp">榮</span>
+                    <h1 class="logo-title admin-logo-title">塩水雞 <span class="admin-title-sub">後台管理</span></h1>
+                </div>
+                <div class="tagline-row-2">
+                    <span class="circle-char">台</span>
+                    <span class="circle-char">灣</span>
+                    <span class="circle-char">口</span>
+                    <span class="circle-char">味</span>
+                </div>
+                <div class="tagline-row-3">清脆、爽口、超好吃</div>
+            </div>
+            
+            <div class="admin-nav-btns">
+                <a href="index.html" class="back-btn"><i class="fa-solid fa-cart-shopping"></i> 前台點餐</a>
+                <button class="back-btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> 登出後台</button>
+            </div>
+        </header>
+
+        <div class="admin-grid">
+            <!-- 頂部控制台：雞腿配額與新增自訂商品 (合併為一個橫向卡片或兩張卡片並列) -->
+            <section class="quota-control-card admin-ctrl-card">
+                <!-- 雞腿配額 -->
+                <div class="admin-quota-block">
+                    <div class="section-title admin-section-title-sm">
+                        <h2><i class="fa-solid fa-drumstick-bite"></i> 雞腿線上配額</h2>
+                    </div>
+                    <p class="admin-desc-text">售完後前台自動顯示完售以防超賣。</p>
+                    <div class="admin-quota-row">
+                        <div class="quota-setup quota-setup-inline">
+                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(-1)"><i class="fa-solid fa-minus"></i></button>
+                            <input type="text" class="quota-val-input quota-val-input-sm" id="quota-val-input" value="5" readonly>
+                            <button class="quota-setup-btn quota-setup-btn-sm" onclick="adjustQuotaInput(1)"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <button class="save-quota-btn save-quota-btn-sm" id="save-quota-btn">更新配額數</button>
+                    </div>
+                </div>
+
+                <!-- 通用新增自訂品項 -->
+                <div class="admin-add-item-block">
+                    <div class="section-title admin-section-title-sm">
+                        <h2><i class="fa-solid fa-plus"></i> 新增自訂商品</h2>
+                    </div>
+                    <p class="admin-desc-text">新增自訂的經典配料或鮮蔬配菜。</p>
+                    <div class="admin-add-item-row">
+                        <input type="text" id="new-item-name" placeholder="商品名稱 (如: 水蓮)" class="admin-item-name-input">
+                        <input type="number" id="new-item-price" placeholder="價格" value="20" class="admin-item-price-input">
+                        <select id="new-item-type" class="admin-item-type-select">
+                            <option value="addon">經典配料</option>
+                            <option value="vegetable">鮮蔬配菜</option>
+                            <option value="bone">啃骨與內臟</option>
+                        </select>
+                        <button class="save-quota-btn admin-add-item-btn" id="add-item-btn">➕ 新增</button>
+                    </div>
+                </div>
+
+                <!-- 系統營運狀態設定 -->
+                <div class="system-status-section admin-sys-status-block">
+                    <div class="section-title admin-section-title-sm">
+                        <h2><i class="fa-solid fa-power-off"></i> 系統營運狀態</h2>
+                    </div>
+                    <p class="admin-desc-text">線上點餐即時控制開關。</p>
+                    <div class="admin-switch-col">
+                        <div class="admin-switch-row-item">
+                            <span class="admin-switch-label">今日公休</span>
+                            <label class="switch switch-sm">
+                                <input type="checkbox" id="system-rest-switch" onchange="handleSystemStatusChange()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="admin-switch-row-item">
+                            <span class="admin-switch-label">暫停線上點餐</span>
+                            <label class="switch switch-sm">
+                                <input type="checkbox" id="system-pause-switch" onchange="handleSystemStatusChange()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 四分欄品項管理網格 -->
+            <div class="admin-quad-grid">
+                <!-- 4. 選鮮蔬 管理 (放最上方，完整呈現) -->
+                <section class="stock-card vegetable-card stock-card-inner">
+                    <div class="section-title admin-cat-section-title">
+                        <h2 class="admin-cat-title"><i class="fa-solid fa-seedling"></i> 選鮮蔬 管理</h2>
+                    </div>
+                    <div class="switch-list switch-list-full" id="vegetable-switch-list">
+                        <!-- 蔬菜 Switch 列表 -->
+                    </div>
+                </section>
+
+                <!-- 1. 吃主食 管理 -->
+                <section class="stock-card stock-card-inner">
+                    <div class="section-title admin-cat-section-title">
+                        <h2 class="admin-cat-title"><i class="fa-solid fa-drumstick-bite"></i> 吃主食 管理</h2>
+                    </div>
+                    <div class="switch-list switch-list-limited" id="main-switch-list">
+                        <!-- 主食 Switch 列表 -->
+                    </div>
+                </section>
+
+                <!-- 2. 啃骨頭 管理 -->
+                <section class="stock-card stock-card-inner">
+                    <div class="section-title admin-cat-section-title">
+                        <h2 class="admin-cat-title"><i class="fa-solid fa-bone"></i> 啃骨頭 管理</h2>
+                    </div>
+                    <div class="switch-list switch-list-limited" id="bone-switch-list">
+                        <!-- 啃骨 Switch 列表 -->
+                    </div>
+                </section>
+
+                <!-- 3. 加配料 管理 -->
+                <section class="stock-card stock-card-inner">
+                    <div class="section-title admin-cat-section-title">
+                        <h2 class="admin-cat-title"><i class="fa-solid fa-pizza-slice"></i> 加配料 管理</h2>
+                    </div>
+                    <div class="switch-list switch-list-limited" id="addon-switch-list">
+                        <!-- 配料 Switch 列表 -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- 今日線上訂單 -->
+            <section class="orders-card">
+                <div class="section-title orders-title-row">
+                    <h2><i class="fa-solid fa-list-check"></i> 今日線上訂單列表 (對帳用)</h2>
+                    <button class="back-btn refresh-btn-sm" id="refresh-orders-btn">
+                        <i class="fa-solid fa-rotate"></i> 重新整理
+                    </button>
+                </div>
+                <div class="orders-container" id="orders-container">
+                    <!-- 這裡會動態載入今日訂單 -->
+                </div>
+            </section>
+        </div>
+
+        <footer class="app-footer-nav admin-footer">
+            <p>© 2026 榮 鹽水雞 後台系統.</p>
+        </footer>
+    </div>
+
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <!-- Admin Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>榮 鹽水雞點餐系統</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+    <div class="background-decor">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <div class="container">
+        <!-- 頂部標題區 -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-container">
+                    <span class="logo-stamp">榮</span>
+                    <h1 class="logo-title">塩水雞</h1>
+                </div>
+                <div class="tagline-row-2">
+                    <span class="circle-char">台</span>
+                    <span class="circle-char">灣</span>
+                    <span class="circle-char">口</span>
+                    <span class="circle-char">味</span>
+                </div>
+                <div class="tagline-row-3">清脆、爽口、超好吃</div>
+            </div>
+        </header>
+
+        <!-- 系統狀態告示 (公休/暫停點餐，預設隱藏) -->
+        <div class="system-status-banner" id="system-status-banner" style="display: none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="system-status-text">系統狀態提示</span>
+        </div>
+
+        <!-- 去骨規則告示 (防呆) -->
+        <div class="alert-banner">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>本店品項「去骨雞腿」與組合「半隻 (僅雞腿去骨)」為固定去骨服務。其他肉類品項恕不提供去骨服務，敬請見諒。</span>
+        </div>
+
+        <main class="order-main">
+            <!-- 分包標籤區 -->
+            <section class="bag-tabs-section">
+                <div class="tabs-container">
+                    <div class="tabs-list" id="bag-tabs-list">
+                        <!-- 動態生成分包 Tab，例如:
+                        <button class="tab-btn active" data-bag-index="0">第一包</button>
+                        -->
+                    </div>
+                    <button class="add-bag-btn" id="add-bag-btn" title="新增一包">
+                        <i class="fa-solid fa-plus"></i> 新增一包
+                    </button>
+                </div>
+            </section>
+
+            <!-- 點餐主面板 -->
+            <section class="order-panel" id="order-panel">
+                <!-- 錨點導覽列 -->
+                <div class="category-nav" id="category-nav">
+                    <a href="#cat-main" class="nav-link active" onclick="scrollToCategory(event, 'cat-main')"><i class="fa-solid fa-drumstick-bite"></i> 吃主食</a>
+                    <a href="#cat-bone" class="nav-link" onclick="scrollToCategory(event, 'cat-bone')"><i class="fa-solid fa-bone"></i> 啃骨頭</a>
+                    <a href="#cat-addon" class="nav-link" onclick="scrollToCategory(event, 'cat-addon')"><i class="fa-solid fa-pizza-slice"></i> 加配料</a>
+                    <a href="#cat-vegetable" class="nav-link" onclick="scrollToCategory(event, 'cat-vegetable')"><i class="fa-solid fa-seedling"></i> 選鮮蔬</a>
+                </div>
+                
+                <!-- 包包內容動態渲染區 -->
+                <div id="bag-content-container">
+                    <!-- 這裡會動態載入當前分包的點餐區 -->
+                </div>
+            </section>
+
+            <!-- 結帳與取餐設定區 -->
+            <section class="checkout-section" id="checkout-section-anchor">
+                <div class="section-title">
+                    <h2><i class="fa-solid fa-cart-shopping"></i> 取餐與聯絡設定</h2>
+                </div>
+                
+                <div class="checkout-grid">
+                    <div class="input-group">
+                        <label for="customer-name"><i class="fa-solid fa-user"></i> 訂購人姓名 <span class="required">*</span></label>
+                        <input type="text" id="customer-name" placeholder="請輸入姓名" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="customer-phone"><i class="fa-solid fa-phone"></i> 聯絡電話 <span class="required">*</span></label>
+                        <input type="tel" id="customer-phone" placeholder="請輸入手機號碼 (如 0912345678)" required pattern="09\d{8}" maxlength="10" inputmode="numeric">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="pickup-time"><i class="fa-solid fa-clock"></i> 預計取餐時間 <span class="required">*</span></label>
+                        <select id="pickup-time" required>
+                            <option value="">請選擇取餐時間</option>
+                            <!-- 動態生成時間 -->
+                        </select>
+                        <small class="helper-text">系統已預留 20-30 分鐘備餐時間</small>
+                    </div>
+                </div>
+
+                <!-- 訂單總結與提交 -->
+                <div class="checkout-summary">
+                    <div class="price-row total-row">
+                        <span>訂單總金額</span>
+                        <span class="total-price" id="grand-total-price">$ 0 元</span>
+                    </div>
+                    <button class="submit-order-btn" id="submit-order-btn">
+                        <span class="btn-text">確認送出訂單</span>
+                        <span class="btn-icon"><i class="fa-solid fa-paper-plane"></i></span>
+                    </button>
+                    <button class="clear-order-btn" id="clear-order-btn" type="button">
+                        <i class="fa-solid fa-trash-can"></i> 清除所有品項 / 重新開始
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="app-footer-nav">
+            <p>© 2026 榮 鹽水雞. 版權所有.</p>
+            <a href="admin.html" class="admin-link"><i class="fa-solid fa-gear"></i> 店家管理後台</a>
+        </footer>
+    </div>
+
+    <!-- 底部懸浮結帳條 (Sticky Footer) - 手機版專用 -->
+    <div class="sticky-checkout-bar" id="sticky-checkout-bar" role="complementary" aria-label="快速結帳">
+        <div class="sticky-checkout-inner">
+            <div class="sticky-total-info">
+                <span class="sticky-total-label">目前總金額</span>
+                <span class="sticky-total-price" id="sticky-total-price">$ 0 元</span>
+            </div>
+            <button class="sticky-checkout-btn" id="sticky-checkout-btn" onclick="document.getElementById('checkout-section-anchor').scrollIntoView({behavior:'smooth'})">
+                <i class="fa-solid fa-cart-shopping"></i> 前往結帳
+            </button>
+        </div>
+    </div>
+
+    <!-- 數位取餐號碼牌畫面 (Ticket View) -->
+    <div id="ticket-view">
+        <div class="container">
+            <!-- 頂部標題（複用） -->
+            <header class="app-header">
+                <div class="logo-area">
+                    <div class="logo-container">
+                        <span class="logo-stamp">榮</span>
+                        <h1 class="logo-title">&#22516;水雞</h1>
+                    </div>
+                    <div class="tagline-row-2">
+                        <span class="circle-char">台</span>
+                        <span class="circle-char">灣</span>
+                        <span class="circle-char">口</span>
+                        <span class="circle-char">味</span>
+                    </div>
+                    <div class="tagline-row-3">清脆、爽口、超好吃</div>
+                </div>
+            </header>
+
+            <!-- 號碼牌主卡片 -->
+            <div class="ticket-card">
+                <!-- 狀態標籤 -->
+                <div class="ticket-status-badge">
+                    <span class="ticket-status-dot"></span>
+                    訂單已送出，準備中
+                </div>
+
+                <!-- 待取号 -->
+                <div class="ticket-number-label">YOUR NUMBER</div>
+                <div class="ticket-number" id="ticket-number-display">---</div>
+
+                <div class="ticket-number-divider">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+
+                <!-- 取餐時間 -->
+                <div class="ticket-time-block">
+                    <div class="ticket-time-label">&#9201; 預計取餐時間</div>
+                    <div class="ticket-time-value" id="ticket-time-display">--:--</div>
+                </div>
+
+                <!-- 顧客姓名 -->
+                <p class="ticket-customer">訂購人：<span id="ticket-name-display">小美食</span></p>
+            </div>
+
+            <!-- 訂單單號 -->
+            <p class="ticket-order-id" id="ticket-order-id-display">訂單編號：------</p>
+
+            <!-- 訂單明細（可展開） -->
+            <div class="ticket-detail-card" id="ticket-detail-card">
+                <button class="ticket-detail-toggle" id="ticket-detail-toggle" onclick="toggleTicketDetail()">
+                    <span><i class="fa-solid fa-receipt"></i> 查看訂單明細</span>
+                    <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                </button>
+                <div class="ticket-detail-body" id="ticket-detail-body">
+                    <!-- 動態產生 -->
+                </div>
+            </div>
+
+            <!-- 注意事項 -->
+            <p class="ticket-notice">
+                <i class="fa-solid fa-circle-info"></i>
+                訂單已安全存儲於您的手機。重新開啟這個網頁即可再次查看取餐狀態。
+            </p>
+
+            <!-- 建立新訂單按鈕 -->
+            <button class="ticket-new-order-btn" id="ticket-new-order-btn" onclick="clearTicketAndReset()">
+                <i class="fa-solid fa-plus-circle"></i> 建立新訂單
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

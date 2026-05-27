@@ -1,0 +1,1967 @@
+/* 榮 鹽水雞點餐系統 - 全域美學設計 */
+
+:root {
+    --bg-main: #ffeaca; /* 溫暖淺杏黃底色 */
+    --bg-card: rgba(255, 255, 255, 0.75); /* 暖白半透明卡片背景 */
+    --bg-input: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(120, 76, 37, 0.12); /* 暖褐細邊框 */
+    --glass-border-active: rgba(231, 100, 0, 0.35); /* 亮橘發光邊框 */
+    
+    --primary: #e76400; /* 送出訂單與主要橘色 */
+    --primary-hover: #ff7c1f;
+    --secondary: #ff7452; /* 招牌珊瑚橘紅 (標題與價格高亮) */
+    --accent-red: #dc2626; /* 大辣紅 */
+    --accent-blue: #2563eb; /* 招牌鮮藍 */
+    
+    --text-primary: #4a2c11; /* 溫暖木質深褐色 */
+    --text-secondary: #7c4d24; /* 中暖褐色 */
+    --text-muted: #9f7b5b; /* 淺暖褐色 */
+    
+    --shadow-sm: 0 2px 8px rgba(74, 44, 17, 0.04);
+    --shadow-md: 0 8px 32px 0 rgba(74, 44, 17, 0.06);
+    --shadow-glow: 0 0 15px rgba(231, 100, 0, 0.15); /* 橘色發光 */
+    --shadow-glow-yellow: 0 0 15px rgba(255, 116, 82, 0.18); /* 橘紅發光 */
+    
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 基礎重設 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    padding: 20px 10px;
+}
+
+/* 背景光圈特效 */
+.background-decor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+}
+
+.circle-1 {
+    top: -10%;
+    right: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+}
+
+.circle-2 {
+    bottom: -10%;
+    left: -10%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+}
+
+/* 主容器 */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* 頂部標頭 */
+.app-header {
+    text-align: center;
+    margin-bottom: 25px;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    padding: 30px 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.logo-area {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+/* 榮字圓角正方形黃底紅字印章 */
+.logo-stamp {
+    background: var(--secondary); /* 珊瑚橘紅 #ff7452 */
+    border: 3px solid var(--primary); /* 深橘色粗邊框 */
+    color: #ffffff; /* 白色榮字 */
+    font-weight: 900;
+    font-size: 2rem;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(231, 100, 0, 0.2); /* 暖橘發光 */
+    text-shadow: none;
+    line-height: 1;
+}
+
+/* 大標題「塩水雞」套用實體招牌描邊字 */
+.logo-title {
+    font-size: 2.6rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--secondary) !important; /* 珊瑚亮橘紅 #ff7452 */
+    -webkit-text-stroke: 0;
+    text-shadow: none; /* 取消所有邊框與陰影，呈現極簡有質感的主標題 */
+    margin: 0;
+    line-height: 1;
+}
+
+.tagline {
+    font-size: 1rem;
+    color: var(--text-secondary); /* 溫暖的深木褐色，在淺米黃底色上最合適且有食慾感 */
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-top: 6px;
+    text-shadow: none; /* 取消陰影 */
+}
+
+/* 狀態面板 */
+.status-panel {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.quota-container {
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.quota-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.quota-info i {
+    color: var(--secondary);
+    margin-right: 4px;
+}
+
+.quota-info strong {
+    color: var(--primary);
+    font-size: 1.1rem;
+    text-shadow: var(--shadow-glow);
+}
+
+.quota-bar-wrapper {
+    background: rgba(255, 255, 255, 0.05);
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.quota-bar {
+    height: 100%;
+    background: linear-gradient(to right, var(--secondary), var(--primary));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    box-shadow: var(--shadow-glow);
+}
+
+.alert-banner {
+    background: var(--secondary); /* 與標題相同 (#ff7452) */
+    border: 1px solid var(--secondary);
+    border-radius: var(--radius-md);
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 15px rgba(255, 116, 82, 0.15);
+}
+
+.alert-banner i {
+    color: #ffffff;
+    font-size: 1.2rem;
+    margin-top: 2px;
+}
+
+.alert-banner span {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* 分包頁籤標籤 */
+.bag-tabs-section {
+    margin-bottom: 20px;
+}
+
+.tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.tabs-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.tabs-list {
+    display: flex;
+    gap: 8px;
+}
+
+.tab-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 10px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(8px);
+}
+
+.tab-btn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: rgba(231, 100, 0, 0.08);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.tab-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 2px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.tab-close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ff8787;
+}
+
+.add-bag-btn {
+    background: rgba(231, 100, 0, 0.05);
+    border: 1px dashed var(--primary);
+    color: var(--primary);
+    padding: 10px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: var(--transition);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.add-bag-btn:hover {
+    background: rgba(231, 100, 0, 0.12);
+    box-shadow: var(--shadow-glow);
+}
+
+/* 點餐面板 */
+.order-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius-lg);
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 25px;
+}
+
+.bag-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.bag-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bag-title i {
+    color: var(--primary);
+}
+
+/* 滿額贈標籤與動畫 */
+.gift-badge {
+    background: linear-gradient(135deg, var(--secondary) 0%, #f59e0b 100%);
+    color: #070a13;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: var(--shadow-glow-yellow);
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* 分區標題 */
+.category-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 25px 0 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.category-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.category-title i {
+    color: var(--secondary);
+}
+
+/* 品項網格與卡片 */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.item-card {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.item-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: transparent;
+    transition: var(--transition);
+}
+
+.item-card:hover {
+    border-color: rgba(220, 38, 38, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.item-card.selected {
+    background: rgba(220, 38, 38, 0.04);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.item-card.selected::before {
+    background: var(--primary);
+}
+
+.item-info {
+    flex: 1;
+    padding-right: 10px;
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.item-price {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.item-price.highlight-price {
+    color: var(--secondary);
+}
+
+/* 售完狀態 */
+.item-card.sold-out {
+    opacity: 0.45;
+    pointer-events: none;
+    background: rgba(30, 41, 59, 0.2);
+}
+
+.item-card.sold-out::after {
+    content: '已售完';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-10deg);
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    letter-spacing: 1px;
+}
+
+/* 數量控制組 */
+.quantity-control {
+    display: flex;
+    align-items: center;
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow: hidden;
+    z-index: 2;
+    transition: var(--transition);
+}
+
+.quantity-control:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.qty-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: var(--transition);
+}
+
+.qty-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary);
+}
+
+.qty-value {
+    width: 28px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* 調味客製 */
+.customization-section {
+    margin-top: 30px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.cust-row {
+    margin-bottom: 20px;
+}
+
+.cust-row:last-child {
+    margin-bottom: 0;
+}
+
+.cust-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.cust-label span {
+    font-size: 0.75rem;
+    font-weight: normal;
+    color: var(--text-muted);
+    margin-left: 5px;
+}
+
+/* 按鈕選擇組 (辣度) */
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.radio-btn {
+    display: none;
+}
+
+.btn-option {
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-option:hover {
+    border-color: rgba(255,255,255,0.15);
+    color: var(--text-primary);
+}
+
+/* 辣度顏色漸層設計 */
+.radio-btn:checked + .btn-option[data-spicy="不辣"] {
+    background: rgba(163, 230, 53, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: var(--shadow-glow);
+}
+.radio-btn:checked + .btn-option[data-spicy="微辣"] {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: var(--secondary);
+    color: var(--secondary);
+    box-shadow: var(--shadow-glow-yellow);
+}
+.radio-btn:checked + .btn-option[data-spicy="小辣"] {
+    background: rgba(249, 115, 22, 0.15);
+    border-color: #f97316;
+    color: #f97316;
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.25);
+}
+.radio-btn:checked + .btn-option[data-spicy="中辣"] {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+}
+.radio-btn:checked + .btn-option[data-spicy="大辣"] {
+    background: rgba(220, 38, 38, 0.25);
+    border-color: #dc2626;
+    color: #ef4444;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+    animation: flash 1.5s infinite alternate;
+}
+
+@keyframes flash {
+    0% { border-color: #dc2626; }
+    100% { border-color: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.7); }
+}
+
+/* 複選鈕組 (配料) */
+.checkbox-btn {
+    display: none;
+}
+
+.checkbox-btn:checked + .btn-option {
+    background: rgba(220, 38, 38, 0.08);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* 備註欄 */
+.note-textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 12px 15px;
+    font-size: 0.9rem;
+    resize: none;
+    min-height: 70px;
+    transition: var(--transition);
+    outline: none;
+}
+
+.note-textarea:focus {
+    border-color: var(--primary);
+    background: var(--bg-input);
+}
+
+.note-textarea::placeholder {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* 包包小計 */
+.bag-summary-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bag-total {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.bag-total strong {
+    color: var(--secondary);
+    font-size: 1.15rem;
+}
+
+/* 結帳與聯絡設定 */
+.checkout-section {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius-lg);
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 30px;
+}
+
+.section-title {
+    margin-bottom: 20px;
+}
+
+.section-title h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title i {
+    color: var(--primary);
+}
+
+.checkout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input-group label i {
+    margin-right: 4px;
+    color: var(--text-muted);
+}
+
+.input-group input, 
+.input-group select {
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: 12px 15px;
+    font-size: 16px; /* 防止 iOS Safari 自動縮放：字體需 >= 16px */
+    outline: none;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.input-group input:focus, 
+.input-group select:focus {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.input-group input::placeholder {
+    color: var(--text-muted);
+}
+
+.required {
+    color: var(--accent-red);
+    margin-left: 2px;
+}
+
+.helper-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* 結帳總計與提交 */
+.checkout-summary {
+    margin-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.price-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-row span:first-child {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.total-price {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow: var(--shadow-glow);
+}
+
+.submit-order-btn {
+    background: var(--primary); /* 橘色 #e76400 */
+    border: none;
+    color: #ffffff; /* 白色文字提升可讀性與對比度 */
+    font-weight: 800;
+    font-size: 1.1rem;
+    width: 100%;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: var(--transition);
+    box-shadow: var(--shadow-glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-order-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-25deg);
+    transition: 0.75s;
+}
+
+.submit-order-btn:hover::before {
+    left: 150%;
+}
+
+.submit-order-btn:hover {
+    background: var(--primary-hover); /* 亮橘色 #ff7c1f */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(231, 100, 0, 0.35);
+}
+
+.submit-order-btn:disabled {
+    background: var(--text-muted);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 頁尾 */
+.app-footer-nav {
+    text-align: center;
+    margin-top: 30px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding-bottom: 20px;
+}
+
+.admin-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    transition: var(--transition);
+}
+
+.admin-link:hover {
+    color: var(--primary);
+    text-shadow: var(--shadow-glow);
+}
+
+/* 彈窗遮罩 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition);
+    padding: 15px;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--glass-border-active);
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+    transform: scale(0.9);
+    transition: var(--transition);
+    backdrop-filter: blur(20px);
+}
+
+.modal-overlay.open .modal-card {
+    transform: scale(1);
+}
+
+.success-icon-animation {
+    font-size: 3.5rem;
+    color: var(--primary);
+    margin-bottom: 15px;
+    text-shadow: var(--shadow-glow);
+}
+
+.modal-card h2 {
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+}
+
+.modal-card p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+.order-receipt-summary {
+    background: rgba(241, 245, 249, 0.95);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    text-align: left;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 25px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.receipt-header {
+    border-bottom: 1px dashed rgba(15, 23, 42, 0.12);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.receipt-bag {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.receipt-bag-title {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.modal-close-btn {
+    background: var(--primary);
+    border: none;
+    color: #070a13;
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.modal-close-btn:hover {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-glow);
+}
+
+/* 響應式優化 */
+@media (max-width: 600px) {
+    body {
+        padding: 10px 5px;
+    }
+    
+    .app-header {
+        padding: 20px 15px;
+    }
+    
+    .app-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .order-panel {
+        padding: 15px;
+    }
+    
+    .items-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+    }
+    
+    .item-card {
+        padding: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .quantity-control {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .checkout-section {
+        padding: 15px;
+    }
+}
+
+/* 錨點導覽列 */
+.category-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    border-radius: 30px;
+    padding: 6px;
+    margin-bottom: 25px;
+    position: sticky;
+    top: 10px;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    gap: 5px;
+}
+
+.category-nav::-webkit-scrollbar {
+    display: none; /* 隱藏行動裝置的滾動條 */
+}
+
+.category-nav .nav-link {
+    flex: 1;
+    text-align: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: var(--transition);
+    border: 1px solid transparent;
+}
+
+.category-nav .nav-link:hover {
+    color: var(--text-primary);
+    background: rgba(15, 23, 42, 0.05);
+}
+
+.category-nav .nav-link.active {
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--primary);
+    border-color: rgba(220, 38, 38, 0.2);
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.1);
+}
+
+/* 平滑滾動與錨點偏移 */
+html {
+    scroll-behavior: smooth;
+}
+
+.category-title {
+    scroll-margin-top: 75px; /* 防止被 sticky 導覽列遮擋 */
+}
+
+/* 錨點分區背景與文字色彩 (使用高對比色凸顯：主食紅、啃骨藍、配料黃、鮮蔬綠) */
+.category-nav .nav-link[href="#cat-main"] {
+    background: rgba(220, 38, 38, 0.02);
+    color: #7c4d24;
+}
+.category-nav .nav-link[href="#cat-main"].active {
+    background: rgba(220, 38, 38, 0.09) !important;
+    color: #dc2626 !important;
+    border-color: rgba(220, 38, 38, 0.25) !important;
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.1);
+}
+
+.category-nav .nav-link[href="#cat-bone"] {
+    background: rgba(37, 99, 235, 0.02);
+    color: #7c4d24;
+}
+.category-nav .nav-link[href="#cat-bone"].active {
+    background: rgba(37, 99, 235, 0.09) !important;
+    color: #2563eb !important;
+    border-color: rgba(37, 99, 235, 0.25) !important;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.1);
+}
+
+.category-nav .nav-link[href="#cat-addon"] {
+    background: rgba(217, 119, 6, 0.02);
+    color: #7c4d24;
+}
+.category-nav .nav-link[href="#cat-addon"].active {
+    background: rgba(217, 119, 6, 0.09) !important;
+    color: #d97706 !important;
+    border-color: rgba(217, 119, 6, 0.25) !important;
+    box-shadow: 0 0 10px rgba(217, 119, 6, 0.1);
+}
+
+.category-nav .nav-link[href="#cat-vegetable"] {
+    background: rgba(101, 163, 13, 0.02);
+    color: #7c4d24;
+}
+.category-nav .nav-link[href="#cat-vegetable"].active {
+    background: rgba(101, 163, 13, 0.09) !important;
+    color: #65a30d !important;
+    border-color: rgba(101, 163, 13, 0.25) !important;
+    box-shadow: 0 0 10px rgba(101, 163, 13, 0.1);
+}
+
+/* 各分類商品卡片選取高亮 (與導覽列分類色一致，主食紅、啃骨藍、配料黃、鮮蔬綠) */
+.item-card.main.selected {
+    background: rgba(220, 38, 38, 0.03);
+    border-color: #dc2626;
+    box-shadow: 0 0 12px rgba(220, 38, 38, 0.15);
+}
+.item-card.main.selected::before {
+    background: #dc2626;
+}
+
+.item-card.bone.selected {
+    background: rgba(37, 99, 235, 0.03);
+    border-color: #2563eb;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.15);
+}
+.item-card.bone.selected::before {
+    background: #2563eb;
+}
+
+.item-card.addon.selected {
+    background: rgba(217, 119, 6, 0.04);
+    border-color: #d97706;
+    box-shadow: 0 0 12px rgba(217, 119, 6, 0.15);
+}
+.item-card.addon.selected::before {
+    background: #d97706;
+}
+
+.item-card.vegetable.selected {
+    background: rgba(101, 163, 13, 0.04);
+    border-color: #65a30d;
+    box-shadow: 0 0 12px rgba(101, 163, 13, 0.15);
+}
+.item-card.vegetable.selected::before {
+    background: #65a30d;
+}
+
+/* ================================================
+   底部懸浮結帳條 (Sticky Footer) - 手機版專用
+   ================================================ */
+.sticky-checkout-bar {
+    display: none; /* 預設隱藏，由 JS 控制顯示 */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--glass-border-active);
+    padding: 12px 16px;
+    box-shadow: 0 -4px 24px rgba(231, 100, 0, 0.15);
+    animation: slideUpBar 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slideUpBar {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+
+.sticky-checkout-bar.visible {
+    display: block;
+}
+
+.sticky-checkout-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.sticky-total-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.sticky-total-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.sticky-total-price {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary);
+    line-height: 1.1;
+    text-shadow: var(--shadow-glow);
+}
+
+.sticky-checkout-btn {
+    background: var(--primary);
+    border: none;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    padding: 13px 24px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+    box-shadow: var(--shadow-glow);
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.sticky-checkout-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-25deg);
+    transition: 0.6s;
+}
+
+.sticky-checkout-btn:hover::before {
+    left: 150%;
+}
+
+.sticky-checkout-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(231, 100, 0, 0.35);
+}
+
+/* 當 sticky bar 顯示時，body 底部補 padding 避免內容被遮住 */
+body.has-sticky-bar {
+    padding-bottom: 80px;
+}
+
+/* 桌機版隱藏 sticky bar */
+@media (min-width: 768px) {
+    .sticky-checkout-bar {
+        display: none !important;
+    }
+    body.has-sticky-bar {
+        padding-bottom: 0;
+    }
+}
+
+/* ================================================
+   admin.html 行內樣式抽離專用 Class
+   ================================================ */
+
+/* 後台主容器預設隱藏 */
+.admin-main-hidden {
+    display: none;
+}
+
+/* 後台 header：強制置中排列 */
+.admin-header-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* 後台 logo-area：置中對齊 */
+.admin-logo-area {
+    text-align: center;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 後台 logo-container：靠近標題列 */
+.admin-logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+/* 後台 logo-title：縮小版本 + 帶副文字 */
+.admin-logo-title {
+    font-size: 1.8rem;
+    margin-bottom: 0;
+}
+
+/* 後台標題中的「後台管理」副文字 */
+.admin-title-sub {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 5px;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
+}
+
+/* 登入後回顧客頁面連結的間距 */
+.auth-back-link {
+    margin-top: 15px;
+}
+
+/* 頂部控制台橫向大卡片 (跨兩欄) */
+.admin-ctrl-card {
+    flex-direction: row;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+    text-align: left;
+    grid-column: span 2;
+    padding: 20px 30px;
+}
+
+/* 配額區塊 */
+.admin-quota-block {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* 配額 section-title 縮小間距 */
+.admin-section-title-sm {
+    margin-bottom: 5px;
+}
+
+/* 配額說明文字 */
+.admin-desc-text {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+}
+
+/* 配額操作列：左右 margin 清零 */
+.admin-quota-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* 配額大卡片內的 quota-setup margin 清零 */
+.quota-setup-inline {
+    margin: 0;
+}
+
+/* 配額輸入框縮小版 */
+.quota-val-input-sm {
+    width: 60px;
+    height: 35px;
+    font-size: 1.2rem;
+    padding: 5px;
+}
+
+/* 配額 +/- 按鈕縮小版 */
+.quota-setup-btn-sm {
+    width: 35px;
+    height: 35px;
+}
+
+/* 更新配額按鈕縮小版 */
+.save-quota-btn-sm {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+}
+
+/* 新增商品區塊 */
+.admin-add-item-block {
+    flex: 2;
+    min-width: 320px;
+}
+
+/* 新增商品表單列 */
+.admin-add-item-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* 新增商品：名稱輸入框 */
+.admin-item-name-input {
+    flex: 2;
+    min-width: 120px;
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 16px; /* 防 iOS 縮放 */
+    outline: none;
+    height: 38px;
+}
+
+/* 新增商品：價格輸入框 */
+.admin-item-price-input {
+    width: 70px;
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    font-size: 16px; /* 防 iOS 縮放 */
+    outline: none;
+    text-align: center;
+    height: 38px;
+}
+
+/* 新增商品：類型下拉選單 */
+.admin-item-type-select {
+    width: 110px;
+    background: var(--bg-input);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    font-size: 16px; /* 防 iOS 縮放 */
+    outline: none;
+    height: 38px;
+}
+
+/* 新增商品：確認按鈕 */
+.admin-add-item-btn {
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    background: var(--primary);
+    color: #ffffff;
+    height: 38px;
+}
+
+/* 系統狀態區塊 */
+.admin-sys-status-block {
+    flex: 1.2;
+    min-width: 220px;
+}
+
+/* 系統狀態：開關列 */
+.admin-switch-row-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.45);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.admin-switch-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 開關文字 */
+.admin-switch-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 縮小 Switch 旋鈕 */
+.switch-sm {
+    transform: scale(0.85);
+}
+
+/* 分類管理卡片 padding 微調 */
+.stock-card-inner {
+    padding: 20px;
+}
+
+/* 分類標題縮小版 */
+.admin-cat-title {
+    font-size: 1.1rem;
+}
+
+/* 分類 section-title 間距縮小 */
+.admin-cat-section-title {
+    margin-bottom: 12px;
+}
+
+/* 主食/骨頭/配料清單高度限制 */
+.switch-list-limited {
+    max-height: 380px;
+    margin-top: 0;
+}
+
+/* 蔬菜清單 (完整展開) */
+.switch-list-full {
+    max-height: none;
+    margin-top: 0;
+}
+
+/* 訂單列表 section-title 橫排 */
+.orders-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 重新整理小按鈕 */
+.refresh-btn-sm {
+    padding: 5px 12px;
+    font-size: 0.75rem;
+}
+
+/* 頁尾上方間距 */
+.admin-footer {
+    margin-top: 40px;
+}
+
+/* 清除訂單重新開始按鈕 */
+.clear-order-btn {
+    background: rgba(120, 76, 37, 0.05);
+    border: 1px solid rgba(120, 76, 37, 0.15);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition);
+    margin-top: 12px; /* 原本在 index.html 的行內樣式，現統一移至此 */
+}
+
+.clear-order-btn:hover {
+    background: rgba(220, 38, 38, 0.08);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
+/* 台灣口味 圓圈個別包字 */
+.tagline-row-2 {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 15px;
+    margin-bottom: 8px;
+}
+
+.circle-char {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--text-secondary); /* 暖褐色圓圈 */
+    border-radius: 50%;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    line-height: 1;
+    text-align: center;
+}
+
+/* 標題第三行：清脆、爽口、超好吃 */
+.tagline-row-3 {
+    font-size: 1rem;
+    color: var(--primary); /* 改用深橘色作為強調，與副標題呼應，非常有質感 */
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-top: 5px;
+    text-shadow: none;
+}
+
+/* 系統狀態 Banner 樣式 (公休/暫停點餐) */
+.system-status-banner {
+    background: #dc2626; /* 招牌鮮紅 */
+    color: #ffffff;
+    padding: 15px 20px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2);
+    font-size: 0.95rem;
+    line-height: 1.45;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2); }
+    50% { box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4); }
+    100% { box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2); }
+}
+
+
+/* ================================================
+   數位取餐號碼牌畫面 (Ticket View)
+   ================================================ */
+
+#ticket-view {
+    display: none;
+    min-height: 100vh;
+    padding: 20px 12px 40px;
+    animation: fadeInPage 0.5s ease both;
+}
+
+#ticket-view.show {
+    display: block;
+}
+
+@keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 頂部 header 復用 app-header，僅加少許間距 */
+#ticket-view .app-header {
+    margin-bottom: 20px;
+}
+
+/* ---- 號碼牌主卡片 ---- */
+.ticket-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border-active);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px 28px;
+    text-align: center;
+    box-shadow: var(--shadow-md), 0 0 40px rgba(231, 100, 0, 0.08);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 背景光暈裝飾 */
+.ticket-card::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(231, 100, 0, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* 狀態標籤 */
+.ticket-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(231, 100, 0, 0.1);
+    border: 1px solid rgba(231, 100, 0, 0.25);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 30px;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+}
+
+.ticket-status-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: blink 1.4s infinite ease-in-out;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.3; transform: scale(0.7); }
+}
+
+/* 大字號碼 */
+.ticket-number-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.ticket-number {
+    font-size: clamp(4.5rem, 18vw, 7rem);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--primary);
+    letter-spacing: -2px;
+    text-shadow: 0 0 40px rgba(231, 100, 0, 0.25);
+    position: relative;
+    display: inline-block;
+    margin-bottom: 6px;
+    font-family: 'Outfit', sans-serif;
+    animation: numberPulse 3s ease-in-out infinite;
+}
+
+@keyframes numberPulse {
+    0%, 100% { text-shadow: 0 0 30px rgba(231, 100, 0, 0.2); }
+    50%       { text-shadow: 0 0 50px rgba(231, 100, 0, 0.45); }
+}
+
+/* 號碼下方裝飾線 */
+.ticket-number-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px auto 20px;
+    max-width: 200px;
+}
+
+.ticket-number-divider::before,
+.ticket-number-divider::after {
+    content: '';
+    flex: 1;
+    height: 1.5px;
+    background: linear-gradient(to right, transparent, rgba(231, 100, 0, 0.3));
+}
+
+.ticket-number-divider::after {
+    background: linear-gradient(to left, transparent, rgba(231, 100, 0, 0.3));
+}
+
+.ticket-number-divider i {
+    color: var(--primary);
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+/* 取餐時間 */
+.ticket-time-block {
+    background: rgba(231, 100, 0, 0.06);
+    border: 1px solid rgba(231, 100, 0, 0.18);
+    border-radius: var(--radius-md);
+    padding: 14px 20px;
+    margin-bottom: 16px;
+}
+
+.ticket-time-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.ticket-time-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary);
+    font-family: 'Outfit', sans-serif;
+    line-height: 1;
+}
+
+/* 顧客姓名 */
+.ticket-customer {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.ticket-customer span {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+/* ---- 訂單摘要卡片（可展開） ---- */
+.ticket-detail-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.ticket-detail-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.ticket-detail-toggle:hover {
+    background: rgba(231, 100, 0, 0.04);
+}
+
+.ticket-detail-toggle i.toggle-arrow {
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+}
+
+.ticket-detail-card.expanded .toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.ticket-detail-body {
+    display: none;
+    padding: 0 18px 16px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.ticket-detail-card.expanded .ticket-detail-body {
+    display: block;
+}
+
+.ticket-bag-row {
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(120, 76, 37, 0.1);
+    font-size: 0.85rem;
+}
+
+.ticket-bag-row:last-child {
+    border-bottom: none;
+}
+
+.ticket-bag-title {
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+    font-size: 0.88rem;
+}
+
+.ticket-bag-items {
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin-bottom: 3px;
+}
+
+.ticket-bag-custom {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.ticket-bag-note {
+    color: var(--secondary);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.ticket-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 6px;
+    border-top: 1px solid var(--glass-border);
+    font-weight: 700;
+}
+
+.ticket-total-amount {
+    color: var(--primary);
+    font-size: 1.15rem;
+}
+
+/* ---- 訂單單號小標 ---- */
+.ticket-order-id {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+/* ---- 建立新訂單按鈕 ---- */
+.ticket-new-order-btn {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid rgba(120, 76, 37, 0.2);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 13px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.ticket-new-order-btn:hover {
+    background: rgba(220, 38, 38, 0.06);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
+/* ---- 注意提示 ---- */
+.ticket-notice {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    padding: 0 10px;
+    margin-bottom: 16px;
+}
+
+.ticket-notice i {
+    color: var(--secondary);
+    margin-right: 4px;
+}
+
+/* 手機響應式：縮小 ticket-view padding */
+@media (max-width: 400px) {
+    .ticket-card {
+        padding: 24px 16px 22px;
+    }
+}
