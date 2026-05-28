@@ -549,7 +549,7 @@ async function sendDiscordStatusEmbed(type) {
 
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const adminUrl = window.location.href;
+    const adminUrl = "https://ching-yu430.github.io/order-system/admin.html";
 
     // 將所有資料以 query string 傳送 (GET 請求，資料不會因重導向而消失)
     const params = new URLSearchParams({
