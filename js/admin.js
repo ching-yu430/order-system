@@ -585,7 +585,7 @@ async function sendDiscordStatusEmbed(type) {
     try {
         const response = await fetch(webhookUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload),
             signal: controller.signal
         });
