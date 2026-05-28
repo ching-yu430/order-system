@@ -55,20 +55,19 @@ const DEFAULT_MENU = [
 ];
 
 // 輔助函數：限制 Promise 執行時間，防止卡死
+// 修正版：不論 resolve 或 reject 都會清除計時器，避免定時器洩漏
 function withTimeout(promise, ms, timeoutErrorMsg) {
     let timeoutId;
-    const timeout = new Promise((_, reject) => {
+    const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
             reject(new Error(timeoutErrorMsg || "操作超時"));
         }, ms);
     });
-    return Promise.race([
-        promise.then(val => {
-            clearTimeout(timeoutId);
-            return val;
-        }),
-        timeout
-    ]);
+    const cleanup = () => clearTimeout(timeoutId);
+    return Promise.race([promise, timeoutPromise]).then(
+        val => { cleanup(); return val; },
+        err => { cleanup(); return Promise.reject(err); }
+    );
 }
 
 class DatabaseAdapter {
@@ -102,10 +101,9 @@ class DatabaseAdapter {
             this.isFirebaseEnabled = false;
         }
 
-        // 初始化本地模擬資料
-        if (!this.isFirebaseEnabled) {
-            this.initLocalStorage();
-        }
+        // 無論是否使用 Firebase，都先初始化 LocalStorage 作為降級備援
+        // 確保 Firebase 超時降級後本地資料一定存在
+        this.initLocalStorage();
     }
 
     initLocalStorage() {

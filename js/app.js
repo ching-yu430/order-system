@@ -713,7 +713,7 @@ async function submitOrder() {
         }
 
         await dbAdapter.createOrder(orderData);
-
+        
         // 8. 存入 localStorage 並切換至數位號碼牌畫面 (優先執行，提供即時回應)
         saveTicketAndShow(orderData);
 
@@ -826,6 +826,10 @@ async function sendDiscordNotification(order) {
         markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     });
     try {
+        // 加入 AbortController 超時防護 (10 秒)，防止 fetch 掛死，因為這是背景執行，不影響顧客畫面
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
             headers: {
@@ -833,14 +837,20 @@ async function sendDiscordNotification(order) {
             },
             body: JSON.stringify({
                 content: markdown
-            })
+            }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         if (!response.ok) {
             throw new Error(`Discord 中繼站回傳錯誤: ${response.status}`);
         }
         console.log("Discord 通知發送成功！");
     } catch (error) {
-        console.error("發送 Discord 通知失敗:", error);
+        if (error.name === 'AbortError') {
+            console.error("發送 Discord 通知超時 (10 秒)，已放棄。");
+        } else {
+            console.error("發送 Discord 通知失敗:", error);
+        }
     }
 }
 
