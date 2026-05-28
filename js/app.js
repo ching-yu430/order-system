@@ -773,29 +773,32 @@ function formatCustomizationText(spicy, removes, hasBamboo = false) {
     return parts.join(" / ");
 }
 
-// 發送 Discord 通知 (終極完美版：總價大小與分包一致 + 廚房出餐單格式)
+// 發送 Discord 通知 (調整版：依照最新廚房出餐單格式排版)
 async function sendDiscordNotification(order) {
     if (!SYSTEM_CONFIG.discordWebhookUrl || SYSTEM_CONFIG.discordWebhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過通知傳送。");
         return;
     }
-    // 擷取單號後三碼變成純數字（例如：R260528008 -> 8）
+    // 擷取單號後三碼變成純數字（例如：R260528014 -> 14）
     const sequenceNum = parseInt(order.id.slice(-3), 10) || order.id.slice(-3);
-    // 最頂部標題：依然維持最醒目的「#」級別超大字，一眼看清取餐時間與號碼牌
-    let markdown = `# ⏰ 【 ${order.pickupTime} 】 ── 👤 ${order.customerName} ── 🎫 ${sequenceNum} 號\n`;
     
-    // 🌟 細節微調：將總計金額這行調整為「###」級別，跟底下的【第 1 包】完全一樣大！
-    markdown += `### 💰 總計金額： $ ${order.totalAmount} 元 (共 ${order.bags.length} 包)  |  📄 單號：\`${order.id}\`\n`;
-    markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    // 最頂部格式
+    let markdown = `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    markdown += `#  ⏰取餐【 ${order.pickupTime} 】 \n\n`;
+    markdown += `## ${order.customerName} （${order.customerPhone}）${sequenceNum} 號\n\n`;
+    markdown += `##  總計 $ ${order.totalAmount} 元 (共 ${order.bags.length} 包)  \n\n`;
+    markdown += `### 單號：\`${order.id}\`\n\n\n`;
+    markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n\n`;
     
     // 中間分包區
     order.bags.forEach(bag => {
         const giftText = bag.hasGift ? ` 🎉【滿百贈脆筍】` : ``;
-        markdown += `### 📦 【第 ${bag.bagIndex} 包】 ── $ ${bag.total} 元${giftText}\n`;
+        markdown += `###  【第 ${bag.bagIndex} 包】 ── $ ${bag.total} 元${giftText}\n\n`;
+        markdown += `▪ 食材明細：\n\n`;
         
-        // 食材明細：數量移前、逐行排列
-        const itemLines = bag.items.map(item => `  🔸 **${item.qty} 份** ── ${item.name}`).join("\n");
-        markdown += `▪ **食材明細**：\n${itemLines}\n`;
+        // 食材明細使用 ## 與 🔸 表現較大字體
+        const itemLines = bag.items.map(item => `##  🔸 ${item.qty} 份 ── ${item.name}`).join("\n\n");
+        markdown += `${itemLines}\n\n\n`;
         
         // 調味客製邏輯 (只留辣度與不要的項目)
         const discordMapping = {
@@ -816,10 +819,11 @@ async function sendDiscordNotification(order) {
         }
         
         const cleanCustomText = customParts.join(" / ");
-        markdown += `▪ **調味客製**： \`${cleanCustomText}\`\n`;
+        markdown += `▪ 調味客製： \`${cleanCustomText}\`\n\n`;
         
         const noteText = bag.note.trim() !== "" ? `\`${bag.note}\`` : "無";
-        markdown += `▪ **單包備註** : ${noteText}\n\n`;
+        markdown += `▪ 單包備註 : ${noteText}\n`;
+        markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     });
     try {
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
@@ -834,7 +838,7 @@ async function sendDiscordNotification(order) {
         if (!response.ok) {
             throw new Error(`Discord 中繼站回傳錯誤: ${response.status}`);
         }
-        console.log("Discord 終極完美版通知發送成功！");
+        console.log("Discord 通知發送成功！");
     } catch (error) {
         console.error("發送 Discord 通知失敗:", error);
     }
