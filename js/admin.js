@@ -552,16 +552,16 @@ async function sendDiscordStatusEmbed(type) {
             `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
         ].join('\n');
     } else {
-        embedColor = 0xED8936;  // 標準橘色
-        embedTitle = "⏸️  暫停線上點餐已開啟";
+        embedColor = 15567158;  // 標準橘色
+        embedTitle = "暫停線上點餐已開啟";
         embedDescription = [
-            "🟠 **「暫停線上點餐」開關已被開啟！**",
+            "「暫停線上點餐」開關已被開啟！",
             "",
             "顧客目前無法送出訂單，店家現場目前繁忙中。",
             "",
-            `✅ **操作時間：** ${timeStr}`,
+            `操作時間： ${timeStr}`,
             "",
-            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
+            `點此立刻連回後台修正狀態: ${adminUrl}`
         ].join('\n');
     }
 
