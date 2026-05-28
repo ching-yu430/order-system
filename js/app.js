@@ -1052,10 +1052,10 @@ function toggleTicketDetail() {
 }
 
 /**
- * 清除号碼牌並回到點餐菜單
+ * 清除號碼牌並回到點餐菜單
  */
 function clearTicketAndReset() {
-    if (!confirm("確定要建立新訂單嗎？\n現有的号碼牌將被清除。")) return;
+    if (!confirm("確定要建立新訂單嗎？\n現有的號碼牌將被清除。")) return;
 
     // 清除 localStorage
     localStorage.removeItem(TICKET_STORAGE_KEY);
