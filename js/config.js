@@ -14,7 +14,7 @@ const SYSTEM_CONFIG = {
 
     // 2. Discord Webhook 設定
     // 顧客下單後，訂單通知會即時傳送到此 Webhook URL 的 Discord 頻道中
-    discordWebhookUrl: "https://script.google.com/macros/s/AKfycbw5gPzLwwxiLHgzx2DMrQ2Kz9LC699KI7TtkpZ_YGruGR0CqJECupkEGMC4PrYyjilN/exec",
+    discordWebhookUrl: "https://script.google.com/macros/s/AKfycbyUmYxwNqU06dLApezfhlnC489gNO6Xow_UhwwM4tXFSQFaTlafB7iJXRSgbsCF63c/exec",
 
     // 3. 店家後台管理密碼
 
