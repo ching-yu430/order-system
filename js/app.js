@@ -564,7 +564,7 @@ function setupEventListeners() {
     }
 }
 
-// 送出訂單
+// 送出訂單 (終極防卡死版：一進來就秒鎖按鈕 + 移除 await 背景發通知)
 async function submitOrder() {
     // 系統狀態阻攔 (公休 / 暫停線上點餐)
     if (systemStatus.isRestDay) {
@@ -582,32 +582,46 @@ async function submitOrder() {
         return;
     }
 
+    // 🌟 優化 1：一進來立刻鎖定按鈕，徹底根除連續快點造成的死鎖問題
+    const submitBtn = document.getElementById("submit-order-btn");
+    if (submitBtn.disabled) return; 
+    submitBtn.disabled = true;
+    submitBtn.querySelector(".btn-text").innerText = "訂單處理中...";
+
+    // 統一建立解鎖按鈕的輔助工具
+    const unlockButton = () => {
+        submitBtn.disabled = false;
+        submitBtn.querySelector(".btn-text").innerText = "確認送出訂單";
+    };
+
     const customerName = document.getElementById("customer-name").value.trim();
     const customerPhone = document.getElementById("customer-phone").value.trim();
     const pickupTime = document.getElementById("pickup-time").value;
     
-    // 1. 基本防呆驗證
+    // 基本防呆驗證
     if (!customerName) {
         alert("請填寫訂購人姓名！");
+        unlockButton();
         return;
     }
     if (!customerPhone) {
         alert("請填寫聯絡電話！");
+        unlockButton();
         return;
     }
-    // 手機號碼格式簡單驗證
     const phoneRegex = /^09\d{8}$/;
     const phoneRegexWithHyphens = /^09\d{2}-\d{3}-\d{3}$/;
     if (!phoneRegex.test(customerPhone) && !phoneRegexWithHyphens.test(customerPhone)) {
-        alert("手機號碼格式不正確，請輸入 10 碼行動電話 (例如: 0912345678 或 0912-345-678)");
+        alert("手機號碼格式不正確，請輸入 10 碼行動電話 (例如: 0912345678)");
+        unlockButton();
         return;
     }
     if (!pickupTime) {
         alert("請選擇預計取餐時間！");
+        unlockButton();
         return;
     }
     
-    // 2. 檢查是否點了任何品項
     let totalItemsCount = 0;
     bags.forEach(bag => {
         for (let id in bag.items) {
@@ -617,29 +631,22 @@ async function submitOrder() {
     
     if (totalItemsCount === 0) {
         alert("您的點餐袋是空的，請先挑選食材！");
+        unlockButton();
         return;
     }
-
-    // 3. 鎖定按鈕避免重複提交 (驗證一通過立即鎖定)
-    const submitBtn = document.getElementById("submit-order-btn");
-    submitBtn.disabled = true;
-    submitBtn.querySelector(".btn-text").innerText = "訂單處理中...";
 
     try {
         const totalDrumsticksOrdered = bags.reduce((sum, b) => sum + (b.items["chicken_drumstick"] || 0), 0);
         
-        // 4. 重新從資料庫獲取最新配額
+        // 重新從資料庫獲取最新配額
         const latestQuota = await dbAdapter.getDrumstickQuota();
 
         if (totalDrumsticksOrdered > latestQuota) {
-            alert(`很抱歉！由於店家現場雞腿數量變動，目前招牌去骨雞腿賸餘配額為 ${latestQuota} 隻，您總共點了 ${totalDrumsticksOrdered} 隻，請調整您的點餐。`);
+            alert(`很抱歉！由於店家現場雞腿數量變動，目前招牌去骨雞腿賸餘配額為 ${latestQuota} 隻，請調整您的點餐。`);
             drumstickQuota = latestQuota;
             updateQuotaUI();
             renderActiveBag();
-            
-            // 恢復提交按鈕
-            submitBtn.disabled = false;
-            submitBtn.querySelector(".btn-text").innerText = "確認送出訂單";
+            unlockButton();
             return;
         }
 
@@ -648,9 +655,8 @@ async function submitOrder() {
         const yy = String(nowTime.getFullYear()).slice(-2);
         const mm = String(nowTime.getMonth() + 1).padStart(2, '0');
         const dd = String(nowTime.getDate()).padStart(2, '0');
-        const datePrefix = `R${yy}${mm}${dd}`; // 例如 "R260528"
+        const datePrefix = `R${yy}${mm}${dd}`; 
         
-        // 5. 僅獲取今日訂單 (避免拉取全部歷史訂單，顯著提升效能)
         const todayOrders = await dbAdapter.getTodayOrders(datePrefix);
         let nextNum = 1;
         if (todayOrders.length > 0) {
@@ -663,7 +669,6 @@ async function submitOrder() {
         }
         const orderId = datePrefix + String(nextNum).padStart(3, '0');
 
-        // 6. 準備訂單資料
         const grandTotal = bags.reduce((sum, bag) => sum + calculateBagTotal(bag), 0);
         
         const formattedBags = bags.map((bag, index) => {
@@ -704,7 +709,7 @@ async function submitOrder() {
             createdAt: new Date().toISOString()
         };
 
-        // 7. 扣除雞腿配額並寫入資料庫
+        // 扣除雞腿配額並寫入資料庫
         if (totalDrumsticksOrdered > 0) {
             const newQuota = latestQuota - totalDrumsticksOrdered;
             await dbAdapter.updateDrumstickQuota(newQuota);
@@ -714,24 +719,16 @@ async function submitOrder() {
 
         await dbAdapter.createOrder(orderData);
         
-        // 8. 先發送 Discord 通知，確保在頁面切換前完成
-        // 說明：若在顯示號碼牌（隱藏頁面）後才發送，行動裝置瀏覽器會節流 fetch 導致通知遺失
-        // 使用 try-catch 確保即使 Discord 通知失敗，也照常顯示號碼牌
-        submitBtn.querySelector(".btn-text").innerText = "傳送通知中...";
-        try {
-            await sendDiscordNotification(orderData);
-        } catch (discordErr) {
-            console.error("Discord 通知發送失敗，但訂單已成功建立:", discordErr);
-        }
+        // 🌟 優化 2：關鍵！拿掉 await！讓 Discord 通知在背景偷偷傳，客人寫入成功後「0秒等待」直接噴出號碼牌！
+        sendDiscordNotification(orderData).catch(err => console.error("背景發送 Discord 通知失敗:", err));
 
-        // 9. 存入 localStorage 並切換至數位號碼牌畫面
+        // 存入 localStorage 並切換至數位號碼牌畫面
         saveTicketAndShow(orderData);
 
     } catch (error) {
         console.error("送出訂單時發生錯誤:", error);
         alert("送出訂單失敗，請稍後再試。");
-        submitBtn.disabled = false;
-        submitBtn.querySelector(".btn-text").innerText = "確認送出訂單";
+        unlockButton();
     }
 }
 
@@ -778,91 +775,68 @@ function formatCustomizationText(spicy, removes, hasBamboo = false) {
     return parts.join(" / ");
 }
 
-// 發送 Discord 通知 (調整版：依照最新廚房出餐單格式排版)
+// 發送 Discord 通知 (你設計的終極廚房實戰特大字純文字版)
 async function sendDiscordNotification(order) {
     if (!SYSTEM_CONFIG.discordWebhookUrl || SYSTEM_CONFIG.discordWebhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過通知傳送。");
         return;
     }
 
-    // 擷取單號後三碼（例如：R260528014 -> 14）
     const sequenceNum = parseInt(order.id.slice(-3), 10) || order.id.slice(-3);
 
-    // 調味 mapping（只顯示不要的項目）
-    const discordMapping = {
-        no_pepper: "不要胡椒",
-        no_oil: "不要油",
-        no_soup: "不要高湯",
-        no_onion: "不要蔥",
-        no_bamboo: "不要脆筍"
-    };
+    let markdown = `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    markdown += `#  ⏰取餐【 ${order.pickupTime} 】\n`; 
+    markdown += `## ${order.customerName} （${order.customerPhone}）${sequenceNum} 號\n`; 
+    markdown += `##  總計 $ ${order.totalAmount} 元 (共 ${order.bags.length} 包)\n`;
+    markdown += `### 單號：\`${order.id}\`\n\n`;
+    markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-    // 組裝各包的 Embed fields
-    const fields = [];
     order.bags.forEach(bag => {
-        const giftText = bag.hasGift ? " 🎉 滿百贈脆筍" : "";
-        const itemLines = bag.items.map(i => `🔸 ${i.qty} 份 ── ${i.name}`).join("\n");
-
+        const giftText = bag.hasGift ? ` 🎉【滿百贈脆筍】` : ``;
+        markdown += `###  【第 ${bag.bagIndex} 包】 ── $ ${bag.total} 元${giftText}\n`;
+        markdown += `▪ **食材明細**：\n`;
+        
+        const itemLines = bag.items.map(item => `##  🔸 **${item.qty} 份** ── ${item.name}`).join("\n");
+        markdown += `${itemLines}\n\n`;
+        
+        const discordMapping = {
+            no_pepper: "不要胡椒",
+            no_oil: "不要油",
+            no_soup: "不要高湯",
+            no_onion: "不要蔥",
+            no_bamboo: "不要脆筍"
+        };
+        
         let customParts = [bag.spicy];
         if (bag.removes && bag.removes.length > 0) {
             bag.removes.forEach(key => {
-                if (discordMapping[key]) customParts.push(discordMapping[key]);
+                if (discordMapping[key]) {
+                    customParts.push(discordMapping[key]);
+                }
             });
         }
+        
         const cleanCustomText = customParts.join(" / ");
-
-        // fix: bag.note 可能是 undefined，加上 || "" 防止 .trim() 爆錯
-        const noteText = (bag.note || "").trim() !== "" ? bag.note.trim() : "無";
-
-        fields.push({
-            name: `📦 第 ${bag.bagIndex} 包 ── $${bag.total} 元${giftText}`,
-            value: [
-                `▪ **食材明細：**\n${itemLines}`,
-                `▪ **調味客製：** \`${cleanCustomText}\``,
-                `▪ **單包備註：** ${noteText}`
-            ].join("\n"),
-            inline: false
-        });
+        markdown += `▪ **調味客製**： \`${cleanCustomText}\`\n`;
+        
+        const noteText = (bag.note || "").trim() !== "" ? `\`${bag.note.trim()}\`` : "無";
+        markdown += `▪ **單包備註** : ${noteText}\n`;
+        markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     });
 
-    // 組裝 Embed Payload
-    const payload = {
-        embeds: [{
-            color: 0xC8913A,  // 榮 招牌金色
-            title: `🔔 【新線上訂單】  ⏰ 取餐 ${order.pickupTime}`,
-            description: [
-                `👤 **${order.customerName}**（${order.customerPhone}） — **${sequenceNum} 號**`,
-                `🛍️ 共 **${order.bags.length}** 包　　💰 總計 **$${order.totalAmount} 元**`,
-                `📋 單號：\`${order.id}\``
-            ].join("\n"),
-            fields: fields,
-            footer: { text: "榮 鹽水雞 線上點餐系統" },
-            timestamp: new Date().toISOString()
-        }]
-    };
-
     try {
-        // 加入 AbortController 超時防護 (12 秒)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(payload),
-            signal: controller.signal
+            body: JSON.stringify({ content: markdown }) // 以純文字發送你設計的完美排版
         });
-        clearTimeout(timeoutId);
+
         if (!response.ok) {
             throw new Error(`Discord 中繼站回傳錯誤: ${response.status}`);
         }
-        console.log("Discord 訂單 Embed 通知發送成功！");
+        console.log("Discord 實戰純文字版通知發送成功！");
     } catch (error) {
-        if (error.name === 'AbortError') {
-            console.error("發送 Discord 通知超時 (12 秒)，已放棄。");
-        } else {
-            console.error("發送 Discord 通知失敗:", error);
-        }
+        console.error("發送 Discord 通知失敗:", error);
     }
 }
 

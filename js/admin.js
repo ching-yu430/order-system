@@ -142,39 +142,50 @@ async function loadQuota() {
     }
 }
 
-// 載入系統營運狀態開關
+// 載入系統營運狀態開關 (加入初始狀態紀錄 dataset)
 async function loadSystemStatus() {
     try {
         const status = await dbAdapter.getSystemStatus();
         const restSwitch = document.getElementById("system-rest-switch");
         const pauseSwitch = document.getElementById("system-pause-switch");
         
-        if (restSwitch) restSwitch.checked = status.isRestDay;
-        if (pauseSwitch) pauseSwitch.checked = status.isPaused;
+        if (restSwitch) {
+            restSwitch.checked = status.isRestDay;
+            restSwitch.dataset.lastState = status.isRestDay; // 🌟 紀錄初始狀態，用來比對是哪個按鈕被點擊
+        }
+        if (pauseSwitch) {
+            pauseSwitch.checked = status.isPaused;
+            pauseSwitch.dataset.lastState = status.isPaused; // 🌟 紀錄初始狀態
+        }
     } catch (e) {
         console.error("載入系統狀態失敗", e);
     }
 }
 
-// 變更系統營運狀態
+// 變更系統營運狀態 (智慧偵測點擊，開啟、關閉都會即時發送精美對比卡片)
 window.handleSystemStatusChange = async function() {
-    const isRestDay = document.getElementById("system-rest-switch").checked;
-    const isPaused = document.getElementById("system-pause-switch").checked;
+    const restSwitch = document.getElementById("system-rest-switch");
+    const pauseSwitch = document.getElementById("system-pause-switch");
+    
+    const isRestDay = restSwitch.checked;
+    const isPaused = pauseSwitch.checked;
+    
+    // 抓出點擊前的舊狀態
+    const lastRestDay = restSwitch.dataset.lastState === "true";
+    const lastPaused = pauseSwitch.dataset.lastState === "true";
     
     try {
         await dbAdapter.updateSystemStatus(isRestDay, isPaused);
         console.log(`系統狀態已更新：公休=${isRestDay}, 暫停=${isPaused}`);
         
-        // 各開關分別判斷，開啟時才發通知（兩個都開啟時各自發一張卡片）
-        if (isRestDay) {
-            sendDiscordStatusEmbed('rest').catch(err => {
-                console.warn('Discord 公休通知發送失敗 (不影響主功能):', err);
-            });
+        // 🌟 只有當狀態真正發生「變動」時，才對應發送 Discord 卡片
+        if (isRestDay !== lastRestDay) {
+            await sendDiscordStatusEmbed('rest', isRestDay);
+            restSwitch.dataset.lastState = isRestDay; // 更新狀態快取
         }
-        if (isPaused) {
-            sendDiscordStatusEmbed('pause').catch(err => {
-                console.warn('Discord 暫停通知發送失敗 (不影響主功能):', err);
-            });
+        if (isPaused !== lastPaused) {
+            await sendDiscordStatusEmbed('pause', isPaused);
+            pauseSwitch.dataset.lastState = isPaused; // 更新狀態快取
         }
     } catch (e) {
         console.error("更新系統狀態失敗", e);
@@ -528,61 +539,76 @@ window.handleUpdatePrice = async function(itemId, newPrice) {
  * 發送系統狀態變更的 Discord Embed 卡片通知
  * @param {'rest'|'pause'} type - 'rest' = 今日公休，'pause' = 暫停線上點餐
  */
-async function sendDiscordStatusEmbed(type) {
+// 發送系統狀態變更的 Discord 雙向 Embed 智慧卡片通知
+async function sendDiscordStatusEmbed(type, isOn) {
     const webhookUrl = SYSTEM_CONFIG.discordWebhookUrl;
     if (!webhookUrl || webhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過狀態卡片通知。");
         return;
     }
 
-    // 後台頁面 URL（重定向用）
-    const adminUrl = window.location.href;
+    const adminUrl = "https://ching-yu430.github.io/order-system/admin.html"; // 後台傳送門網址
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-    // 依照類型設定卡片內容
     let embedColor, embedTitle, embedDescription;
 
     if (type === 'rest') {
-        embedColor = 0xE53E3E;  // 鮮紅色
-        embedTitle = "🚨  今日公休已開啟";
-        embedDescription = [
+        // 今日公休狀態切換
+        embedColor = isOn ? 0xE53E3E : 0x38A169;  // 🟥 鮮紅色 (開) : 🟩 森林綠 (關)
+        embedTitle = isOn ? "🚨 【系統警告：切換為今日公休】" : "🟩 【系統通知：已恢復正常營業】";
+        embedDescription = isOn ? [
             "🔴 **「今日公休」開關已被開啟！**",
             "",
-            "顧客將無法上線點餐，請確認是否是誤觸。",
+            "前台網頁已自動封鎖，顧客目前無法線上點餐。",
             "",
             `✅ **操作時間：** ${timeStr}`,
             "",
+            `> ⚠️ **防誤觸核對：**若是不小心按錯了，請點擊下方連結一鍵修正：`,
             `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
+        ].join('\n') : [
+            "🍏 **「今日公休」開關已被關閉！**",
+            "",
+            "系統已恢復營業狀態，前台已重新開放，顧客可以正常線上下單囉！",
+            "",
+            `✅ **操作時間：** ${timeStr}`,
+            "",
+            `> 👉 **[🔗 進入後台管理系統](${adminUrl})**`
         ].join('\n');
     } else {
-        embedColor = 0xED8936;  // 亮橘色
-        embedTitle = "⏸️  暫停線上點餐已開啟";
-        embedDescription = [
-            "🟠 **「暫停線上點餐」開關已被開啟！**",
+        // 暫停線上點餐狀態切換
+        embedColor = isOn ? 0xED8936 : 0x38A169;  // 🟨 警告橘 (開) : 🟩 森林綠 (關)
+        embedTitle = isOn ? "⏸️ 【系統通知：現場繁忙暫停點餐】" : "🟩 【系統通知：已恢復線上點餐】";
+        embedDescription = isOn ? [
+            "漏單防範：**「暫停線上點餐」開關已被開啟！**",
             "",
-            "顧客目前無法送出訂單，店家現場目前繁忙中。",
+            "前台會跳出提示提示現場繁忙，已暫時阻攔顧客送單。",
             "",
             `✅ **操作時間：** ${timeStr}`,
             "",
-            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
+            `> 💡 **出餐提醒：**現場忙完之後，別忘了點擊下方連結回後台重新接單喔！`,
+            `> 👉 **[🔗 點此立刻連回後台恢復接單](${adminUrl})**`
+        ].join('\n') : [
+            "🚀 **「暫停線上點餐」開關已被關閉！**",
+            "",
+            "現場繁忙已解除，前台即刻起重新恢復線上點餐接單！",
+            "",
+            `✅ **操作時間：** ${timeStr}`,
+            "",
+            `> 👉 **[🔗 進入後台管理系統](${adminUrl})**`
         ].join('\n');
     }
 
-    // 構建完整 Discord Webhook Payload
     const payload = {
         embeds: [{
             title: embedTitle,
             description: embedDescription,
             color: embedColor,
-            footer: {
-                text: "榮 鹽水雞 後台管理系統"
-            },
+            footer: { text: "榮 鹽水雞 後台管理系統" },
             timestamp: new Date().toISOString()
         }]
     };
 
-    // 透過 Apps Script 中繼占發送嵌入卡片
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
@@ -596,16 +622,11 @@ async function sendDiscordStatusEmbed(type) {
         clearTimeout(timeoutId);
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`中繼占回傳錯誤: ${response.status} ${text}`);
+            throw new Error(`中繼站回傳錯誤: ${response.status} ${text}`);
         }
-        console.log('Discord 狀態變更嵌入卡片通知發送成功！');
+        console.log('Discord 狀態變更智慧卡片發送成功！');
     } catch (err) {
         clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-            console.error('Discord 嵌入卡片發送超時。');
-        } else {
-            console.error('Discord 嵌入卡片發送失敗:', err);
-        }
-        throw err; // 重丟讓呼叫端知道
+        console.error('Discord 狀態變更卡片發送失敗:', err);
     }
 }
