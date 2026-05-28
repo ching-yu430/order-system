@@ -54,6 +54,23 @@ const DEFAULT_MENU = [
     { id: "potato", name: "馬鈴薯", price: 20, type: "vegetable", status: true }
 ];
 
+// 輔助函數：限制 Promise 執行時間，防止卡死
+function withTimeout(promise, ms, timeoutErrorMsg) {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            reject(new Error(timeoutErrorMsg || "操作超時"));
+        }, ms);
+    });
+    return Promise.race([
+        promise.then(val => {
+            clearTimeout(timeoutId);
+            return val;
+        }),
+        timeout
+    ]);
+}
+
 class DatabaseAdapter {
     constructor() {
         this.isFirebaseEnabled = false;
@@ -133,7 +150,7 @@ class DatabaseAdapter {
     async getMenu() {
         if (this.isFirebaseEnabled) {
             try {
-                const snapshot = await this.db.collection('menu').get();
+                const snapshot = await withTimeout(this.db.collection('menu').get(), 4000, "取得菜單超時");
                 if (snapshot.empty) {
                     // 若 Firestore 是空的，則上傳預設菜單並回傳
                     console.log("Firestore 菜單為空，開始初始化預設菜單...");
@@ -142,7 +159,7 @@ class DatabaseAdapter {
                         const ref = this.db.collection('menu').doc(item.id);
                         batch.set(ref, item);
                     });
-                    await batch.commit();
+                    await withTimeout(batch.commit(), 4000, "初始化菜單上傳超時");
                     return DEFAULT_MENU;
                 }
                 const menu = [];
@@ -151,7 +168,8 @@ class DatabaseAdapter {
                 });
                 return menu;
             } catch (error) {
-                console.error("Firestore getMenu 失敗，退回 LocalStorage 讀取", error);
+                console.error("Firestore getMenu 失敗，自動降級至 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.getLocalMenu();
             }
         } else {
@@ -167,10 +185,11 @@ class DatabaseAdapter {
     async updateMenuItemStatus(itemId, isOpen) {
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('menu').doc(itemId).update({ status: isOpen });
+                await withTimeout(this.db.collection('menu').doc(itemId).update({ status: isOpen }), 4000, "更新品項狀態超時");
                 console.log(`已更新品項 ${itemId} 狀態為: ${isOpen}`);
             } catch (error) {
-                console.error("Firestore updateMenuItemStatus 失敗，改更新 LocalStorage", error);
+                console.error("Firestore updateMenuItemStatus 失敗，自動降級改更新 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.updateLocalMenuItemStatus(itemId, isOpen);
             }
         } else {
@@ -192,10 +211,11 @@ class DatabaseAdapter {
         newPrice = Number(newPrice);
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('menu').doc(itemId).update({ price: newPrice });
+                await withTimeout(this.db.collection('menu').doc(itemId).update({ price: newPrice }), 4000, "更新品項價格超時");
                 console.log(`已更新品項 ${itemId} 價格為: ${newPrice}`);
             } catch (error) {
-                console.error("Firestore updateMenuItemPrice 失敗，改更新 LocalStorage", error);
+                console.error("Firestore updateMenuItemPrice 失敗，自動降級改更新 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.updateLocalMenuItemPrice(itemId, newPrice);
             }
         } else {
@@ -216,16 +236,17 @@ class DatabaseAdapter {
     async getDrumstickQuota() {
         if (this.isFirebaseEnabled) {
             try {
-                const doc = await this.db.collection('settings').doc('drumstick_quota').get();
+                const doc = await withTimeout(this.db.collection('settings').doc('drumstick_quota').get(), 4000, "取得雞腿配額超時");
                 if (doc.exists) {
                     return doc.data().quota;
                 } else {
                     // 初始化配額
-                    await this.db.collection('settings').doc('drumstick_quota').set({ quota: SYSTEM_CONFIG.defaultDrumstickQuota });
+                    await withTimeout(this.db.collection('settings').doc('drumstick_quota').set({ quota: SYSTEM_CONFIG.defaultDrumstickQuota }), 4000, "初始化雞腿配額超時");
                     return SYSTEM_CONFIG.defaultDrumstickQuota;
                 }
             } catch (error) {
-                console.error("Firestore getDrumstickQuota 失敗，退回 LocalStorage 讀取", error);
+                console.error("Firestore getDrumstickQuota 失敗，自動降級至 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.getLocalDrumstickQuota();
             }
         } else {
@@ -242,10 +263,11 @@ class DatabaseAdapter {
     async updateDrumstickQuota(count) {
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('settings').doc('drumstick_quota').update({ quota: count });
+                await withTimeout(this.db.collection('settings').doc('drumstick_quota').update({ quota: count }), 4000, "更新雞腿配額超時");
                 console.log(`已更新雞腿配額為: ${count}`);
             } catch (error) {
-                console.error("Firestore updateDrumstickQuota 失敗，改更新 LocalStorage", error);
+                console.error("Firestore updateDrumstickQuota 失敗，自動降級改更新 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.updateLocalDrumstickQuota(count);
             }
         } else {
@@ -259,13 +281,13 @@ class DatabaseAdapter {
 
     // 寫入新訂單
     async createOrder(orderData) {
-        // orderData 包括：id, customerName, customerPhone, pickupTime, items, totalAmount, createdAt 等
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('orders').doc(orderData.id).set(orderData);
+                await withTimeout(this.db.collection('orders').doc(orderData.id).set(orderData), 4000, "寫入新訂單超時");
                 console.log(`訂單 ${orderData.id} 已寫入 Firestore。`);
             } catch (error) {
-                console.error("Firestore createOrder 失敗，改寫入 LocalStorage", error);
+                console.error("Firestore createOrder 失敗，自動降級寫入 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.createLocalOrder(orderData);
             }
         } else {
@@ -283,14 +305,15 @@ class DatabaseAdapter {
     async getOrders() {
         if (this.isFirebaseEnabled) {
             try {
-                const snapshot = await this.db.collection('orders').orderBy('createdAt', 'desc').get();
+                const snapshot = await withTimeout(this.db.collection('orders').orderBy('createdAt', 'desc').get(), 4000, "取得訂單列表超時");
                 const orders = [];
                 snapshot.forEach(doc => {
                     orders.push(doc.data());
                 });
                 return orders;
             } catch (error) {
-                console.error("Firestore getOrders 失敗，退回 LocalStorage 讀取", error);
+                console.error("Firestore getOrders 失敗，自動降級至 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.getLocalOrders();
             }
         } else {
@@ -309,17 +332,22 @@ class DatabaseAdapter {
         if (this.isFirebaseEnabled) {
             try {
                 // 利用 Firestore 範圍查詢篩選今日單號以 datePrefix 開頭的訂單
-                const snapshot = await this.db.collection('orders')
-                    .where('id', '>=', datePrefix)
-                    .where('id', '<=', datePrefix + '\uf8ff')
-                    .get();
+                const snapshot = await withTimeout(
+                    this.db.collection('orders')
+                        .where('id', '>=', datePrefix)
+                        .where('id', '<=', datePrefix + '\uf8ff')
+                        .get(),
+                    4000,
+                    "取得今日訂單超時"
+                );
                 const orders = [];
                 snapshot.forEach(doc => {
                     orders.push(doc.data());
                 });
                 return orders;
             } catch (error) {
-                console.error("Firestore getTodayOrders 失敗，退回 LocalStorage 讀取", error);
+                console.error("Firestore getTodayOrders 失敗，自動降級至 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.getLocalTodayOrders(datePrefix);
             }
         } else {
@@ -339,11 +367,12 @@ class DatabaseAdapter {
         
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('menu').doc(id).set(item);
+                await withTimeout(this.db.collection('menu').doc(id).set(item), 4000, "新增品項超時");
                 console.log(`已將品項 ${name} 新增至 Firestore`);
                 return item;
             } catch (error) {
-                console.error("Firestore addMenuItem 失敗，改用 LocalStorage", error);
+                console.error("Firestore addMenuItem 失敗，自動降級改用 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.addLocalMenuItem(item);
             }
         } else {
@@ -362,10 +391,11 @@ class DatabaseAdapter {
     async deleteMenuItem(itemId) {
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('menu').doc(itemId).delete();
+                await withTimeout(this.db.collection('menu').doc(itemId).delete(), 4000, "刪除品項超時");
                 console.log(`已從 Firestore 刪除品項 ${itemId}`);
             } catch (error) {
-                console.error("Firestore deleteMenuItem 失敗，改用 LocalStorage", error);
+                console.error("Firestore deleteMenuItem 失敗，自動降級改用 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.deleteLocalMenuItem(itemId);
             }
         } else {
@@ -387,15 +417,16 @@ class DatabaseAdapter {
         const defaultStatus = { isRestDay: false, isPaused: false };
         if (this.isFirebaseEnabled) {
             try {
-                const doc = await this.db.collection('settings').doc('system_status').get();
+                const doc = await withTimeout(this.db.collection('settings').doc('system_status').get(), 4000, "取得系統狀態超時");
                 if (doc.exists) {
                     return doc.data();
                 } else {
-                    await this.db.collection('settings').doc('system_status').set(defaultStatus);
+                    await withTimeout(this.db.collection('settings').doc('system_status').set(defaultStatus), 4000, "初始化系統狀態超時");
                     return defaultStatus;
                 }
             } catch (error) {
-                console.error("Firestore getSystemStatus 失敗，退回 LocalStorage 讀取", error);
+                console.error("Firestore getSystemStatus 失敗，自動降級至 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 return this.getLocalSystemStatus();
             }
         } else {
@@ -413,10 +444,11 @@ class DatabaseAdapter {
         const status = { isRestDay, isPaused };
         if (this.isFirebaseEnabled) {
             try {
-                await this.db.collection('settings').doc('system_status').set(status, { merge: true });
+                await withTimeout(this.db.collection('settings').doc('system_status').set(status, { merge: true }), 4000, "更新系統狀態超時");
                 console.log("Firestore 系統狀態已更新：", status);
             } catch (error) {
-                console.error("Firestore updateSystemStatus 失敗，改更新 LocalStorage", error);
+                console.error("Firestore updateSystemStatus 失敗，自動降級改更新 LocalStorage", error);
+                this.isFirebaseEnabled = false;
                 this.updateLocalSystemStatus(isRestDay, isPaused);
             }
         } else {
