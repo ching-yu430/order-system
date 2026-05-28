@@ -165,11 +165,15 @@ window.handleSystemStatusChange = async function() {
         await dbAdapter.updateSystemStatus(isRestDay, isPaused);
         console.log(`系統狀態已更新：公休=${isRestDay}, 暫停=${isPaused}`);
         
-        // 狀態有開啟時，立即發送 Discord 嵌入卡片通知
-        if (isRestDay || isPaused) {
-            const type = isRestDay ? 'rest' : 'pause';
-            sendDiscordStatusEmbed(type).catch(err => {
-                console.warn('Discord 狀態通知發送失敗 (不影響主功能):', err);
+        // 各開關分別判斷，開啟時才發通知（兩個都開啟時各自發一張卡片）
+        if (isRestDay) {
+            sendDiscordStatusEmbed('rest').catch(err => {
+                console.warn('Discord 公休通知發送失敗 (不影響主功能):', err);
+            });
+        }
+        if (isPaused) {
+            sendDiscordStatusEmbed('pause').catch(err => {
+                console.warn('Discord 暫停通知發送失敗 (不影響主功能):', err);
             });
         }
     } catch (e) {
@@ -552,16 +556,16 @@ async function sendDiscordStatusEmbed(type) {
             `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
         ].join('\n');
     } else {
-        embedColor = 15567158;  // 標準橘色
-        embedTitle = "暫停線上點餐已開啟";
+        embedColor = 0xED8936;  // 亮橘色
+        embedTitle = "⏸️  暫停線上點餐已開啟";
         embedDescription = [
-            "「暫停線上點餐」開關已被開啟！",
+            "🟠 **「暫停線上點餐」開關已被開啟！**",
             "",
             "顧客目前無法送出訂單，店家現場目前繁忙中。",
             "",
-            `操作時間： ${timeStr}`,
+            `✅ **操作時間：** ${timeStr}`,
             "",
-            `點此立刻連回後台修正狀態: ${adminUrl}`
+            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
         ].join('\n');
     }
 

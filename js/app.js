@@ -784,75 +784,82 @@ async function sendDiscordNotification(order) {
         console.log("未配置 Discord Webhook URL，跳過通知傳送。");
         return;
     }
-    // 擷取單號後三碼變成純數字（例如：R260528014 -> 14）
+
+    // 擷取單號後三碼（例如：R260528014 -> 14）
     const sequenceNum = parseInt(order.id.slice(-3), 10) || order.id.slice(-3);
-    
-    // 最頂部格式
-    let markdown = `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    markdown += `#  ⏰取餐【 ${order.pickupTime} 】 \n\n`;
-    markdown += `## ${order.customerName} （${order.customerPhone}）${sequenceNum} 號\n\n`;
-    markdown += `##  總計 $ ${order.totalAmount} 元 (共 ${order.bags.length} 包)  \n\n`;
-    markdown += `### 單號：\`${order.id}\`\n\n\n`;
-    markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n\n`;
-    
-    // 中間分包區
+
+    // 調味 mapping（只顯示不要的項目）
+    const discordMapping = {
+        no_pepper: "不要胡椒",
+        no_oil: "不要油",
+        no_soup: "不要高湯",
+        no_onion: "不要蔥",
+        no_bamboo: "不要脆筍"
+    };
+
+    // 組裝各包的 Embed fields
+    const fields = [];
     order.bags.forEach(bag => {
-        const giftText = bag.hasGift ? ` 🎉【滿百贈脆筍】` : ``;
-        markdown += `###  【第 ${bag.bagIndex} 包】 ── $ ${bag.total} 元${giftText}\n\n`;
-        markdown += `▪ 食材明細：\n\n`;
-        
-        // 食材明細使用 ## 與 🔸 表現較大字體
-        const itemLines = bag.items.map(item => `##  🔸 ${item.qty} 份 ── ${item.name}`).join("\n\n");
-        markdown += `${itemLines}\n\n\n`;
-        
-        // 調味客製邏輯 (只留辣度與不要的項目)
-        const discordMapping = {
-            no_pepper: "不要胡椒",
-            no_oil: "不要油",
-            no_soup: "不要高湯",
-            no_onion: "不要蔥",
-            no_bamboo: "不要脆筍"
-        };
-        
+        const giftText = bag.hasGift ? " 🎉 滿百贈脆筍" : "";
+        const itemLines = bag.items.map(i => `🔸 ${i.qty} 份 ── ${i.name}`).join("\n");
+
         let customParts = [bag.spicy];
         if (bag.removes && bag.removes.length > 0) {
             bag.removes.forEach(key => {
-                if (discordMapping[key]) {
-                    customParts.push(discordMapping[key]);
-                }
+                if (discordMapping[key]) customParts.push(discordMapping[key]);
             });
         }
-        
         const cleanCustomText = customParts.join(" / ");
-        markdown += `▪ 調味客製： \`${cleanCustomText}\`\n\n`;
-        
-        const noteText = bag.note.trim() !== "" ? `\`${bag.note}\`` : "無";
-        markdown += `▪ 單包備註 : ${noteText}\n`;
-        markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+        // fix: bag.note 可能是 undefined，加上 || "" 防止 .trim() 爆錯
+        const noteText = (bag.note || "").trim() !== "" ? bag.note.trim() : "無";
+
+        fields.push({
+            name: `📦 第 ${bag.bagIndex} 包 ── $${bag.total} 元${giftText}`,
+            value: [
+                `▪ **食材明細：**\n${itemLines}`,
+                `▪ **調味客製：** \`${cleanCustomText}\``,
+                `▪ **單包備註：** ${noteText}`
+            ].join("\n"),
+            inline: false
+        });
     });
+
+    // 組裝 Embed Payload
+    const payload = {
+        embeds: [{
+            color: 0xC8913A,  // 榮 招牌金色
+            title: `🔔 【新線上訂單】  ⏰ 取餐 ${order.pickupTime}`,
+            description: [
+                `👤 **${order.customerName}**（${order.customerPhone}） — **${sequenceNum} 號**`,
+                `🛍️ 共 **${order.bags.length}** 包　　💰 總計 **$${order.totalAmount} 元**`,
+                `📋 單號：\`${order.id}\``
+            ].join("\n"),
+            fields: fields,
+            footer: { text: "榮 鹽水雞 線上點餐系統" },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
     try {
-        // 加入 AbortController 超時防護 (12 秒)，配合 submitOrder 等待時間
+        // 加入 AbortController 超時防護 (12 秒)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
-        
+
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
-            headers: {
-                "Content-Type": "text/plain"
-            },
-            body: JSON.stringify({
-                content: markdown
-            }),
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload),
             signal: controller.signal
         });
         clearTimeout(timeoutId);
         if (!response.ok) {
             throw new Error(`Discord 中繼站回傳錯誤: ${response.status}`);
         }
-        console.log("Discord 通知發送成功！");
+        console.log("Discord 訂單 Embed 通知發送成功！");
     } catch (error) {
         if (error.name === 'AbortError') {
-            console.error("發送 Discord 通知超時 (10 秒)，已放棄。");
+            console.error("發送 Discord 通知超時 (12 秒)，已放棄。");
         } else {
             console.error("發送 Discord 通知失敗:", error);
         }
