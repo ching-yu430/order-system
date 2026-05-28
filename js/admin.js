@@ -164,6 +164,14 @@ window.handleSystemStatusChange = async function() {
     try {
         await dbAdapter.updateSystemStatus(isRestDay, isPaused);
         console.log(`系統狀態已更新：公休=${isRestDay}, 暫停=${isPaused}`);
+        
+        // 狀態有開啟時，立即發送 Discord 嵌入卡片通知
+        if (isRestDay || isPaused) {
+            const type = isRestDay ? 'rest' : 'pause';
+            sendDiscordStatusEmbed(type).catch(err => {
+                console.warn('Discord 狀態通知發送失敗 (不影響主功能):', err);
+            });
+        }
     } catch (e) {
         console.error("更新系統狀態失敗", e);
         alert("更新營運狀態失敗，請重試。");
@@ -505,5 +513,95 @@ window.handleUpdatePrice = async function(itemId, newPrice) {
     } catch (e) {
         console.error("更新價格失敗", e);
         alert("更新價格失敗，請重試。");
+    }
+}
+
+// ============================================================
+// 後台即時 Discord 狀態變更嵌入卡片通知
+// ============================================================
+
+/**
+ * 發送系統狀態變更的 Discord Embed 卡片通知
+ * @param {'rest'|'pause'} type - 'rest' = 今日公休，'pause' = 暫停線上點餐
+ */
+async function sendDiscordStatusEmbed(type) {
+    const webhookUrl = SYSTEM_CONFIG.discordWebhookUrl;
+    if (!webhookUrl || webhookUrl === "") {
+        console.log("未配置 Discord Webhook URL，跳過狀態卡片通知。");
+        return;
+    }
+
+    // 後台頁面 URL（重定向用）
+    const adminUrl = window.location.href;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    // 依照類型設定卡片內容
+    let embedColor, embedTitle, embedDescription;
+
+    if (type === 'rest') {
+        embedColor = 0xE53E3E;  // 鮮紅色
+        embedTitle = "🚨  今日公休已開啟";
+        embedDescription = [
+            "🔴 **「今日公休」開關已被開啟！**",
+            "",
+            "顧客將無法上線點餐，請確認是否是誤觸。",
+            "",
+            `✅ **操作時間：** ${timeStr}`,
+            "",
+            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
+        ].join('\n');
+    } else {
+        embedColor = 0xED8936;  // 標準橘色
+        embedTitle = "⏸️  暫停線上點餐已開啟";
+        embedDescription = [
+            "🟠 **「暫停線上點餐」開關已被開啟！**",
+            "",
+            "顧客目前無法送出訂單，店家現場目前繁忙中。",
+            "",
+            `✅ **操作時間：** ${timeStr}`,
+            "",
+            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
+        ].join('\n');
+    }
+
+    // 構建完整 Discord Webhook Payload
+    const payload = {
+        embeds: [{
+            title: embedTitle,
+            description: embedDescription,
+            color: embedColor,
+            footer: {
+                text: "榮 鹽水雞 後台管理系統"
+            },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    // 透過 Apps Script 中繼占發送嵌入卡片
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`中繼占回傳錯誤: ${response.status} ${text}`);
+        }
+        console.log('Discord 狀態變更嵌入卡片通知發送成功！');
+    } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+            console.error('Discord 嵌入卡片發送超時。');
+        } else {
+            console.error('Discord 嵌入卡片發送失敗:', err);
+        }
+        throw err; // 重丟讓呼叫端知道
     }
 }
