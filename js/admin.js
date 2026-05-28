@@ -537,75 +537,41 @@ window.handleUpdatePrice = async function(itemId, newPrice) {
 
 /**
  * 發送系統狀態變更的 Discord Embed 卡片通知
- * @param {'rest'|'pause'} type - 'rest' = 今日公休，'pause' = 暫停線上點餐
+ * 使用 GET + URL 參數（避免 Apps Script 302 重導向 POST body 消失的問題）
+ * @param {'rest'|'pause'} type
  */
 async function sendDiscordStatusEmbed(type) {
     const webhookUrl = SYSTEM_CONFIG.discordWebhookUrl;
     if (!webhookUrl || webhookUrl === "") {
-        console.log("未配置 Discord Webhook URL，跳過狀態卡片通知。");
+        console.log("未配置 Discord Webhook URL，跳過狀態通知。");
         return;
     }
 
-    const adminUrl = window.location.href;
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const adminUrl = window.location.href;
 
-    let embedColor, embedTitle, embedDescription;
+    // 將所有資料以 query string 傳送 (GET 請求，資料不會因重導向而消失)
+    const params = new URLSearchParams({
+        action: 'status',
+        type: type,
+        time: timeStr,
+        adminUrl: adminUrl
+    });
 
-    if (type === 'rest') {
-        embedColor = 14754083;  // 紅色
-        embedTitle = "今日公休已開啟";
-        embedDescription = [
-            "**[公休] 開關已被開啟**",
-            "",
-            "顧客將無法上線點餐，請確認是否誤觸。",
-            "",
-            `操作時間：${timeStr}`,
-            "",
-            `點此連回後台修正狀態：${adminUrl}`
-        ].join('\n');
-    } else {
-        embedColor = 15576321;  // 橘色
-        embedTitle = "暫停線上點餐已開啟";
-        embedDescription = [
-            "**[暫停] 開關已被開啟**",
-            "",
-            "顧客目前無法送出訂單，店家現場繁忙中。",
-            "",
-            `操作時間：${timeStr}`,
-            "",
-            `點此連回後台修正狀態：${adminUrl}`
-        ].join('\n');
-    }
+    const getUrl = `${webhookUrl}?${params.toString()}`;
 
-    const payload = {
-        embeds: [{
-            title: embedTitle,
-            description: embedDescription,
-            color: embedColor,
-            footer: { text: "榮 鹽水雞 後台管理系統" },
-            timestamp: new Date().toISOString()
-        }]
-    };
-
-    const body = JSON.stringify(payload);
-
-    // 最多重試 3 次，間隔 2 秒（解決 Apps Script 冷啟動問題）
+    // 最多重試 3 次，間隔 2 秒
     const MAX_ATTEMPTS = 3;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
-            // no-cors 模式：完全避免 CORS 預檢請求
-            // Apps Script 仍會收到 POST 並轉送給 Discord，只是我們不讀取回應
-            await fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: body
+            await fetch(getUrl, {
+                method: 'GET',
+                mode: 'no-cors'
             });
             console.log(`Discord 狀態通知已發出 (第 ${attempt} 次，類型: ${type})`);
-            return; // 成功送出，結束
+            return;
         } catch (err) {
-            // 只有網路完全斷線才會進這裡
             console.warn(`Discord 通知第 ${attempt} 次失敗:`, err.message);
             if (attempt < MAX_ATTEMPTS) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -614,4 +580,3 @@ async function sendDiscordStatusEmbed(type) {
     }
     console.error(`Discord 狀態通知在 ${MAX_ATTEMPTS} 次嘗試後均失敗。`);
 }
-
