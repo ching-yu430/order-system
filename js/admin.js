@@ -539,8 +539,9 @@ window.handleUpdatePrice = async function(itemId, newPrice) {
  * 發送系統狀態變更的 Discord Embed 卡片通知
  * 使用 GET + URL 參數（避免 Apps Script 302 重導向 POST body 消失的問題）
  * @param {'rest'|'pause'} type
+ * @param {boolean} isOn
  */
-async function sendDiscordStatusEmbed(type) {
+async function sendDiscordStatusEmbed(type, isOn) {
     const webhookUrl = SYSTEM_CONFIG.discordWebhookUrl;
     if (!webhookUrl || webhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過狀態通知。");
@@ -555,6 +556,7 @@ async function sendDiscordStatusEmbed(type) {
     const params = new URLSearchParams({
         action: 'status',
         type: type,
+        isOn: isOn, // 傳遞開關狀態 (true / false)
         time: timeStr,
         adminUrl: adminUrl
     });
