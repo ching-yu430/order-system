@@ -620,88 +620,91 @@ async function submitOrder() {
         return;
     }
 
-    // 3. 檢查並計算雞腿消耗，雙重安全機制防止超賣
-    const totalDrumsticksOrdered = bags.reduce((sum, b) => sum + (b.items["chicken_drumstick"] || 0), 0);
-    // 重新從資料庫獲取最新配額與所有訂單，用於計算流水號與防止超賣
-    const latestQuota = await dbAdapter.getDrumstickQuota();
-    const allOrders = await dbAdapter.getOrders();
-
-    if (totalDrumsticksOrdered > latestQuota) {
-        alert(`很抱歉！由於店家現場雞腿數量變動，目前招牌去骨雞腿賸餘配額為 ${latestQuota} 隻，您總共點了 ${totalDrumsticksOrdered} 隻，請調整您的點餐。`);
-        drumstickQuota = latestQuota;
-        updateQuotaUI();
-        renderActiveBag();
-        return;
-    }
-
-    // 生成 Ryymmdd*** 格式流水號單號
-    const nowTime = new Date();
-    const yy = String(nowTime.getFullYear()).slice(-2);
-    const mm = String(nowTime.getMonth() + 1).padStart(2, '0');
-    const dd = String(nowTime.getDate()).padStart(2, '0');
-    const datePrefix = `R${yy}${mm}${dd}`; // 例如 "R260528"
-    
-    // 篩選出今日已有該字首的訂單
-    const todayOrders = allOrders.filter(o => o.id && o.id.startsWith(datePrefix));
-    let nextNum = 1;
-    if (todayOrders.length > 0) {
-        const nums = todayOrders.map(o => {
-            const suffix = o.id.slice(datePrefix.length);
-            const val = parseInt(suffix, 10);
-            return isNaN(val) ? 0 : val;
-        });
-        nextNum = Math.max(...nums) + 1;
-    }
-    const orderId = datePrefix + String(nextNum).padStart(3, '0');
-
-    // 4. 準備訂單資料
-    const grandTotal = bags.reduce((sum, bag) => sum + calculateBagTotal(bag), 0);
-    
-    const formattedBags = bags.map((bag, index) => {
-        const giftStatus = checkGiftEligibility(bag);
-        const itemDetails = [];
-        
-        for (let id in bag.items) {
-            const qty = bag.items[id];
-            const item = menu.find(m => m.id === id);
-            if (item) {
-                itemDetails.push({
-                    itemId: id,
-                    name: item.name,
-                    qty: qty,
-                    price: item.price
-                });
-            }
-        }
-        
-        return {
-            bagIndex: index + 1,
-            items: itemDetails,
-            spicy: bag.spicy,
-            removes: [...bag.removes],
-            note: bag.note,
-            hasGift: giftStatus.eligible,
-            total: calculateBagTotal(bag)
-        };
-    });
-
-    const orderData = {
-        id: orderId,
-        customerName,
-        customerPhone,
-        pickupTime,
-        bags: formattedBags,
-        totalAmount: grandTotal,
-        createdAt: new Date().toISOString()
-    };
-
-    // 5. 鎖定按鈕避免重複提交
+    // 3. 鎖定按鈕避免重複提交 (驗證一通過立即鎖定)
     const submitBtn = document.getElementById("submit-order-btn");
     submitBtn.disabled = true;
-    submitBtn.querySelector(".btn-text").innerText = "訂單送出中...";
+    submitBtn.querySelector(".btn-text").innerText = "訂單處理中...";
 
     try {
-        // 6. 扣除雞腿配額並寫入資料庫
+        const totalDrumsticksOrdered = bags.reduce((sum, b) => sum + (b.items["chicken_drumstick"] || 0), 0);
+        
+        // 4. 重新從資料庫獲取最新配額
+        const latestQuota = await dbAdapter.getDrumstickQuota();
+
+        if (totalDrumsticksOrdered > latestQuota) {
+            alert(`很抱歉！由於店家現場雞腿數量變動，目前招牌去骨雞腿賸餘配額為 ${latestQuota} 隻，您總共點了 ${totalDrumsticksOrdered} 隻，請調整您的點餐。`);
+            drumstickQuota = latestQuota;
+            updateQuotaUI();
+            renderActiveBag();
+            
+            // 恢復提交按鈕
+            submitBtn.disabled = false;
+            submitBtn.querySelector(".btn-text").innerText = "確認送出訂單";
+            return;
+        }
+
+        // 生成 Ryymmdd*** 格式流水號單號
+        const nowTime = new Date();
+        const yy = String(nowTime.getFullYear()).slice(-2);
+        const mm = String(nowTime.getMonth() + 1).padStart(2, '0');
+        const dd = String(nowTime.getDate()).padStart(2, '0');
+        const datePrefix = `R${yy}${mm}${dd}`; // 例如 "R260528"
+        
+        // 5. 僅獲取今日訂單 (避免拉取全部歷史訂單，顯著提升效能)
+        const todayOrders = await dbAdapter.getTodayOrders(datePrefix);
+        let nextNum = 1;
+        if (todayOrders.length > 0) {
+            const nums = todayOrders.map(o => {
+                const suffix = o.id.slice(datePrefix.length);
+                const val = parseInt(suffix, 10);
+                return isNaN(val) ? 0 : val;
+            });
+            nextNum = Math.max(...nums) + 1;
+        }
+        const orderId = datePrefix + String(nextNum).padStart(3, '0');
+
+        // 6. 準備訂單資料
+        const grandTotal = bags.reduce((sum, bag) => sum + calculateBagTotal(bag), 0);
+        
+        const formattedBags = bags.map((bag, index) => {
+            const giftStatus = checkGiftEligibility(bag);
+            const itemDetails = [];
+            
+            for (let id in bag.items) {
+                const qty = bag.items[id];
+                const item = menu.find(m => m.id === id);
+                if (item) {
+                    itemDetails.push({
+                        itemId: id,
+                        name: item.name,
+                        qty: qty,
+                        price: item.price
+                    });
+                }
+            }
+            
+            return {
+                bagIndex: index + 1,
+                items: itemDetails,
+                spicy: bag.spicy,
+                removes: [...bag.removes],
+                note: bag.note,
+                hasGift: giftStatus.eligible,
+                total: calculateBagTotal(bag)
+            };
+        });
+
+        const orderData = {
+            id: orderId,
+            customerName,
+            customerPhone,
+            pickupTime,
+            bags: formattedBags,
+            totalAmount: grandTotal,
+            createdAt: new Date().toISOString()
+        };
+
+        // 7. 扣除雞腿配額並寫入資料庫
         if (totalDrumsticksOrdered > 0) {
             const newQuota = latestQuota - totalDrumsticksOrdered;
             await dbAdapter.updateDrumstickQuota(newQuota);
@@ -711,11 +714,13 @@ async function submitOrder() {
 
         await dbAdapter.createOrder(orderData);
 
-        // 7. 推送 Discord 通知
-        await sendDiscordNotification(orderData);
-
-        // 8. 存入 localStorage 並切換至數位號碼牌畫面
+        // 8. 存入 localStorage 並切換至數位號碼牌畫面 (優先執行，提供即時回應)
         saveTicketAndShow(orderData);
+
+        // 9. 背景推送 Discord 通知 (非阻塞，不 await)
+        sendDiscordNotification(orderData).catch(error => {
+            console.error("背景發送 Discord Webhook 通知失敗:", error);
+        });
 
     } catch (error) {
         console.error("送出訂單時發生錯誤:", error);
@@ -768,41 +773,54 @@ function formatCustomizationText(spicy, removes, hasBamboo = false) {
     return parts.join(" / ");
 }
 
-// 發送 Discord 通知
+// 發送 Discord 通知 (終極完美版：總價大小與分包一致 + 廚房出餐單格式)
 async function sendDiscordNotification(order) {
     if (!SYSTEM_CONFIG.discordWebhookUrl || SYSTEM_CONFIG.discordWebhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過通知傳送。");
         return;
     }
-
-    // 嚴格遵循指定的 Markdown 排版
-    let markdown = `🔔 【新線上訂單】\n`;
-    markdown += `⏰ 預計取餐時間： **[${order.pickupTime}]**\n`;
-    markdown += `🛍️ 總包數： **共 ${order.bags.length} 包**\n`;
-    markdown += `👤 顧客聯絡： ${order.customerName} (${order.customerPhone})\n\n`;
-    markdown += `====================\n\n`;
-
+    // 擷取單號後三碼變成純數字（例如：R260528008 -> 8）
+    const sequenceNum = parseInt(order.id.slice(-3), 10) || order.id.slice(-3);
+    // 最頂部標題：依然維持最醒目的「#」級別超大字，一眼看清取餐時間與號碼牌
+    let markdown = `# ⏰ 【 ${order.pickupTime} 】 ── 👤 ${order.customerName} ── 🎫 ${sequenceNum} 號\n`;
+    
+    // 🌟 細節微調：將總計金額這行調整為「###」級別，跟底下的【第 1 包】完全一樣大！
+    markdown += `### 💰 總計金額： $ ${order.totalAmount} 元 (共 ${order.bags.length} 包)  |  📄 單號：\`${order.id}\`\n`;
+    markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    
+    // 中間分包區
     order.bags.forEach(bag => {
-        const giftText = bag.hasGift ? ` （滿百贈：脆筍 1 份）` : ` （未滿百）`;
-        markdown += `📦 【第 ${bag.bagIndex} 包】${giftText}\n`;
+        const giftText = bag.hasGift ? ` 🎉【滿百贈脆筍】` : ``;
+        markdown += `### 📦 【第 ${bag.bagIndex} 包】 ── $ ${bag.total} 元${giftText}\n`;
         
-        // 食材明細
-        const itemNames = bag.items.map(item => `${item.name} x${item.qty}`).join("、");
-        markdown += `▪ 食材明細： ${itemNames}\n`;
+        // 食材明細：數量移前、逐行排列
+        const itemLines = bag.items.map(item => `  🔸 **${item.qty} 份** ── ${item.name}`).join("\n");
+        markdown += `▪ **食材明細**：\n${itemLines}\n`;
         
-        // 客製化調味
-        const hasBamboo = bag.hasGift || bag.items.some(i => i.itemId === "half_chicken");
-        const customText = formatCustomizationText(bag.spicy, bag.removes, hasBamboo);
-        markdown += `▪ 調味客製： ${customText}\n`;
+        // 調味客製邏輯 (只留辣度與不要的項目)
+        const discordMapping = {
+            no_pepper: "不要胡椒",
+            no_oil: "不要油",
+            no_soup: "不要高湯",
+            no_onion: "不要蔥",
+            no_bamboo: "不要脆筍"
+        };
         
-        // 備註
-        const noteText = bag.note.trim() !== "" ? bag.note : "無";
-        markdown += `▪ 單包備註： ${noteText}\n\n`;
+        let customParts = [bag.spicy];
+        if (bag.removes && bag.removes.length > 0) {
+            bag.removes.forEach(key => {
+                if (discordMapping[key]) {
+                    customParts.push(discordMapping[key]);
+                }
+            });
+        }
+        
+        const cleanCustomText = customParts.join(" / ");
+        markdown += `▪ **調味客製**： \`${cleanCustomText}\`\n`;
+        
+        const noteText = bag.note.trim() !== "" ? `\`${bag.note}\`` : "無";
+        markdown += `▪ **單包備註** : ${noteText}\n\n`;
     });
-
-    markdown += `====================\n\n`;
-    markdown += `💰 訂單總計： **$ ${order.totalAmount} 元**`;
-
     try {
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
@@ -813,13 +831,12 @@ async function sendDiscordNotification(order) {
                 content: markdown
             })
         });
-
         if (!response.ok) {
-            throw new Error(`Discord 伺服器回傳狀態: ${response.status}`);
+            throw new Error(`Discord 中繼站回傳錯誤: ${response.status}`);
         }
-        console.log("Discord Webhook 通知發送成功！");
+        console.log("Discord 終極完美版通知發送成功！");
     } catch (error) {
-        console.error("發送 Discord Webhook 通知失敗:", error);
+        console.error("發送 Discord 通知失敗:", error);
     }
 }
 

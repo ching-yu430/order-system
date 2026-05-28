@@ -304,6 +304,34 @@ class DatabaseAdapter {
         return orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
+    // 取得今日訂單 (優化效能，避免拉取全部歷史訂單)
+    async getTodayOrders(datePrefix) {
+        if (this.isFirebaseEnabled) {
+            try {
+                // 利用 Firestore 範圍查詢篩選今日單號以 datePrefix 開頭的訂單
+                const snapshot = await this.db.collection('orders')
+                    .where('id', '>=', datePrefix)
+                    .where('id', '<=', datePrefix + '\uf8ff')
+                    .get();
+                const orders = [];
+                snapshot.forEach(doc => {
+                    orders.push(doc.data());
+                });
+                return orders;
+            } catch (error) {
+                console.error("Firestore getTodayOrders 失敗，退回 LocalStorage 讀取", error);
+                return this.getLocalTodayOrders(datePrefix);
+            }
+        } else {
+            return this.getLocalTodayOrders(datePrefix);
+        }
+    }
+
+    getLocalTodayOrders(datePrefix) {
+        const orders = this.getLocalOrders();
+        return orders.filter(o => o.id && o.id.startsWith(datePrefix));
+    }
+
     // 新增品項 (預設為配菜 type="side")
     async addMenuItem(name, price, type = "side") {
         const id = "side_" + Date.now().toString().slice(-6);
