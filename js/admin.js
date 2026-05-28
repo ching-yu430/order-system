@@ -539,63 +539,42 @@ window.handleUpdatePrice = async function(itemId, newPrice) {
  * 發送系統狀態變更的 Discord Embed 卡片通知
  * @param {'rest'|'pause'} type - 'rest' = 今日公休，'pause' = 暫停線上點餐
  */
-// 發送系統狀態變更的 Discord 雙向 Embed 智慧卡片通知
-async function sendDiscordStatusEmbed(type, isOn) {
+async function sendDiscordStatusEmbed(type) {
     const webhookUrl = SYSTEM_CONFIG.discordWebhookUrl;
     if (!webhookUrl || webhookUrl === "") {
         console.log("未配置 Discord Webhook URL，跳過狀態卡片通知。");
         return;
     }
 
-    const adminUrl = "https://ching-yu430.github.io/order-system/admin.html"; // 後台傳送門網址
+    const adminUrl = window.location.href;
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
     let embedColor, embedTitle, embedDescription;
 
     if (type === 'rest') {
-        // 今日公休狀態切換
-        embedColor = isOn ? 0xE53E3E : 0x38A169;  // 🟥 鮮紅色 (開) : 🟩 森林綠 (關)
-        embedTitle = isOn ? "🚨 【系統警告：切換為今日公休】" : "🟩 【系統通知：已恢復正常營業】";
-        embedDescription = isOn ? [
-            "🔴 **「今日公休」開關已被開啟！**",
+        embedColor = 14754083;  // 紅色
+        embedTitle = "今日公休已開啟";
+        embedDescription = [
+            "**[公休] 開關已被開啟**",
             "",
-            "前台網頁已自動封鎖，顧客目前無法線上點餐。",
+            "顧客將無法上線點餐，請確認是否誤觸。",
             "",
-            `✅ **操作時間：** ${timeStr}`,
+            `操作時間：${timeStr}`,
             "",
-            `> ⚠️ **防誤觸核對：**若是不小心按錯了，請點擊下方連結一鍵修正：`,
-            `> 👉 **[🔗 點此立刻連回後台修正狀態](${adminUrl})**`
-        ].join('\n') : [
-            "🍏 **「今日公休」開關已被關閉！**",
-            "",
-            "系統已恢復營業狀態，前台已重新開放，顧客可以正常線上下單囉！",
-            "",
-            `✅ **操作時間：** ${timeStr}`,
-            "",
-            `> 👉 **[🔗 進入後台管理系統](${adminUrl})**`
+            `點此連回後台修正狀態：${adminUrl}`
         ].join('\n');
     } else {
-        // 暫停線上點餐狀態切換
-        embedColor = isOn ? 0xED8936 : 0x38A169;  // 🟨 警告橘 (開) : 🟩 森林綠 (關)
-        embedTitle = isOn ? "⏸️ 【系統通知：現場繁忙暫停點餐】" : "🟩 【系統通知：已恢復線上點餐】";
-        embedDescription = isOn ? [
-            "漏單防範：**「暫停線上點餐」開關已被開啟！**",
+        embedColor = 15576321;  // 橘色
+        embedTitle = "暫停線上點餐已開啟";
+        embedDescription = [
+            "**[暫停] 開關已被開啟**",
             "",
-            "前台會跳出提示提示現場繁忙，已暫時阻攔顧客送單。",
+            "顧客目前無法送出訂單，店家現場繁忙中。",
             "",
-            `✅ **操作時間：** ${timeStr}`,
+            `操作時間：${timeStr}`,
             "",
-            `> 💡 **出餐提醒：**現場忙完之後，別忘了點擊下方連結回後台重新接單喔！`,
-            `> 👉 **[🔗 點此立刻連回後台恢復接單](${adminUrl})**`
-        ].join('\n') : [
-            "🚀 **「暫停線上點餐」開關已被關閉！**",
-            "",
-            "現場繁忙已解除，前台即刻起重新恢復線上點餐接單！",
-            "",
-            `✅ **操作時間：** ${timeStr}`,
-            "",
-            `> 👉 **[🔗 進入後台管理系統](${adminUrl})**`
+            `點此連回後台修正狀態：${adminUrl}`
         ].join('\n');
     }
 
@@ -609,24 +588,30 @@ async function sendDiscordStatusEmbed(type, isOn) {
         }]
     };
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const body = JSON.stringify(payload);
 
-    try {
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`中繼站回傳錯誤: ${response.status} ${text}`);
+    // 最多重試 3 次，間隔 2 秒（解決 Apps Script 冷啟動問題）
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+            // no-cors 模式：完全避免 CORS 預檢請求
+            // Apps Script 仍會收到 POST 並轉送給 Discord，只是我們不讀取回應
+            await fetch(webhookUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: body
+            });
+            console.log(`Discord 狀態通知已發出 (第 ${attempt} 次，類型: ${type})`);
+            return; // 成功送出，結束
+        } catch (err) {
+            // 只有網路完全斷線才會進這裡
+            console.warn(`Discord 通知第 ${attempt} 次失敗:`, err.message);
+            if (attempt < MAX_ATTEMPTS) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
         }
-        console.log('Discord 狀態變更智慧卡片發送成功！');
-    } catch (err) {
-        clearTimeout(timeoutId);
-        console.error('Discord 狀態變更卡片發送失敗:', err);
     }
+    console.error(`Discord 狀態通知在 ${MAX_ATTEMPTS} 次嘗試後均失敗。`);
 }
+
