@@ -838,7 +838,7 @@ async function sendDiscordNotification(order) {
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "text/plain"
             },
             body: JSON.stringify({
                 content: markdown
