@@ -18,7 +18,7 @@ jobs:
     - name: 設定 Python 環境
       uses: actions/setup-python@v4
       with:
-        python-python: '3.10'
+        python-version: '3.10'
 
     - name: 安裝依賴項目
       run: |
@@ -27,7 +27,11 @@ jobs:
 
     - name: 執行重置與清理腳本
       env:
-        # 將 Firebase 服務帳戶私鑰配置在 GitHub Repo Secrets 中
+        # Firebase 服務帳戶私鑰（必填）
         FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        # Discord Webhook URL（用於清晨早安防忘提醒，直接填入 Discord Webhook 網址）
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        # 後台管理頁面網址（在 Discord 通知中提供一鍵跳轉連結）
+        ADMIN_PAGE_URL: ${{ secrets.ADMIN_PAGE_URL }}
       run: |
         python scripts/daily_reset.py
