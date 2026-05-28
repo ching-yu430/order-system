@@ -714,13 +714,18 @@ async function submitOrder() {
 
         await dbAdapter.createOrder(orderData);
         
-        // 8. 存入 localStorage 並切換至數位號碼牌畫面 (優先執行，提供即時回應)
-        saveTicketAndShow(orderData);
+        // 8. 先發送 Discord 通知，確保在頁面切換前完成
+        // 說明：若在顯示號碼牌（隱藏頁面）後才發送，行動裝置瀏覽器會節流 fetch 導致通知遺失
+        // 使用 try-catch 確保即使 Discord 通知失敗，也照常顯示號碼牌
+        submitBtn.querySelector(".btn-text").innerText = "傳送通知中...";
+        try {
+            await sendDiscordNotification(orderData);
+        } catch (discordErr) {
+            console.error("Discord 通知發送失敗，但訂單已成功建立:", discordErr);
+        }
 
-        // 9. 背景推送 Discord 通知 (非阻塞，不 await)
-        sendDiscordNotification(orderData).catch(error => {
-            console.error("背景發送 Discord Webhook 通知失敗:", error);
-        });
+        // 9. 存入 localStorage 並切換至數位號碼牌畫面
+        saveTicketAndShow(orderData);
 
     } catch (error) {
         console.error("送出訂單時發生錯誤:", error);
@@ -826,9 +831,9 @@ async function sendDiscordNotification(order) {
         markdown += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     });
     try {
-        // 加入 AbortController 超時防護 (10 秒)，防止 fetch 掛死，因為這是背景執行，不影響顧客畫面
+        // 加入 AbortController 超時防護 (12 秒)，配合 submitOrder 等待時間
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
         
         const response = await fetch(SYSTEM_CONFIG.discordWebhookUrl, {
             method: "POST",
